@@ -1,0 +1,20 @@
+:root {
+  --primary: #1677ff;
+  --primary-bg: #e6f4ff;
+  --success: #52c41a;
+  --success-bg: #f6ffed;
+  --warning: #faad14;
+  --warning-bg: #fffbe6;
+  --danger: #ff4d4f;
+  --danger-bg: #fff2f0;
+  --text: #1f1f1f;
+  --text-secondary: #8c8c8c;
+  --border: #f0f0f0;
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --sidebar-bg: #001529;
+  --sidebar-width: 220px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); }
