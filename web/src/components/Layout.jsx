@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Layout as AntLayout, Menu } from 'antd'
-import { DashboardOutlined, ProjectOutlined, WarningOutlined } from '@ant-design/icons'
+import { Layout as AntLayout, Menu, Avatar, Dropdown, Space } from 'antd'
+import { DashboardOutlined, ProjectOutlined, WarningOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons'
 
-const { Sider, Content } = AntLayout
+const { Sider, Content, Header } = AntLayout
 
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: '项目总览' },
@@ -14,6 +14,26 @@ const menuItems = [
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('feishu_user')
+    if (saved) {
+      try { setUser(JSON.parse(saved)) } catch {}
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('feishu_token')
+    localStorage.removeItem('feishu_user')
+    navigate('/login')
+  }
+
+  const userMenu = {
+    items: [
+      { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
+    ],
+  }
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
@@ -29,9 +49,19 @@ export default function Layout() {
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
-      <Content style={{ padding: 24, background: '#f5f5f5' }}>
-        <Outlet />
-      </Content>
+      <AntLayout>
+        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
+          <Dropdown menu={userMenu}>
+            <Space style={{ cursor: 'pointer' }}>
+              <Avatar icon={<UserOutlined />} src={user?.avatar} />
+              <span>{user?.name || '未登录'}</span>
+            </Space>
+          </Dropdown>
+        </Header>
+        <Content style={{ padding: 24, background: '#f5f5f5' }}>
+          <Outlet />
+        </Content>
+      </AntLayout>
     </AntLayout>
   )
 }

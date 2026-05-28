@@ -4,6 +4,7 @@ const cors = require('cors')
 const projectsRouter = require('./routes/projects')
 const nodesRouter = require('./routes/nodes')
 const issuesRouter = require('./routes/issues')
+const authRouter = require('./routes/auth')
 const { handleMessage, handleCardAction } = require('./bot')
 const { callTool } = require('./mcp')
 
@@ -20,6 +21,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/projects', projectsRouter)
 app.use('/api/nodes', nodesRouter)
 app.use('/api/issues', issuesRouter)
+app.use('/api/auth', authRouter)
 
 // Stats API
 app.get('/api/stats', async (req, res) => {
