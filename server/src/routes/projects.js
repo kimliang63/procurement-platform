@@ -23,6 +23,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const project = await callTool('create_project', req.body)
+    // 自动初始化 13 个节点
+    if (project?.record_id) {
+      await callTool('init_project_nodes', project.record_id)
+    }
     res.json({ data: project })
   } catch (e) {
     res.status(500).json({ error: e.message })

@@ -51,9 +51,9 @@ export default function IssueTracker() {
     fetchData()
   }
 
-  const priorityColor = { high: 'red', medium: 'orange', low: 'default' }
-  const statusColor = { open: 'red', in_progress: 'orange', closed: 'green' }
-  const statusText = { open: '待处理', in_progress: '处理中', closed: '已解决' }
+  const priorityColor = { '高': 'red', '中': 'orange', '低': 'default' }
+  const statusColor = { open: 'red', resolved: 'orange', closed: 'green' }
+  const statusText = { open: '待处理', resolved: '处理中', closed: '已解决' }
 
   return (
     <div>
@@ -76,10 +76,7 @@ export default function IssueTracker() {
             title: '操作', render: (_, record) => (
               <Space>
                 {record.fields?.status === 'open' && (
-                  <Button size="small" onClick={() => handleStatusChange(record.record_id, 'in_progress')}>处理中</Button>
-                )}
-                {record.fields?.status === 'in_progress' && (
-                  <Button size="small" type="primary" onClick={() => handleStatusChange(record.record_id, 'closed')}>已解决</Button>
+                  <Button size="small" onClick={() => handleStatusChange(record.record_id, 'resolved')}>标记解决</Button>
                 )}
               </Space>
             )
@@ -88,10 +85,10 @@ export default function IssueTracker() {
       />
       <Modal title="创建问题" open={modalOpen} onOk={handleCreate} onCancel={() => setModalOpen(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item name="projectId" label="关联项目" rules={[{ required: true }]}>
+          <Form.Item name="project_id" label="关联项目" rules={[{ required: true }]}>
             <Select options={projects.map(p => ({ value: p.record_id, label: p.fields?.name }))} />
           </Form.Item>
-          <Form.Item name="stageKey" label="关联阶段" rules={[{ required: true }]}>
+          <Form.Item name="stage_key" label="关联阶段" rules={[{ required: true }]}>
             <Select options={STAGE_OPTIONS} />
           </Form.Item>
           <Form.Item name="description" label="问题描述" rules={[{ required: true }]}>

@@ -54,12 +54,12 @@ async function handleMessage(event) {
   }
 }
 
-function handleCardAction(action) {
+async function handleCardAction(action) {
   if (action.action === 'confirm_node') {
-    return callTool('advance_node', { projectId: action.project_id, stageKey: action.stage_key, status: 'completed' })
+    return await callTool('advance_node', { projectId: action.project_id, stageKey: action.stage_key, status: 'completed' })
   }
   if (action.action === 'mark_abnormal') {
-    return callTool('mark_node_abnormal', { projectId: action.project_id, stageKey: action.stage_key, reason: '用户标记异常' })
+    return await callTool('mark_node_abnormal', { projectId: action.project_id, stageKey: action.stage_key, reason: '用户标记异常' })
   }
 }
 

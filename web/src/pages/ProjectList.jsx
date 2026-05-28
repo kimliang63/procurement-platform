@@ -56,7 +56,7 @@ export default function ProjectList() {
             <Input placeholder="如：XX设备采购" />
           </Form.Item>
           <Form.Item name="category" label="采购品类" rules={[{ required: true }]}>
-            <Select options={[{ value: '设备' }, { value: '原材料' }, { value: '服务' }]} />
+            <Select options={[{ value: '设备' }, { value: '材料' }, { value: '服务' }, { value: '其他' }]} />
           </Form.Item>
           <Form.Item name="owner" label="负责人" rules={[{ required: true }]}>
             <Input />

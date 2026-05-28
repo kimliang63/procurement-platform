@@ -2,11 +2,11 @@ const { listRecords, getRecord, createRecord, updateRecord } = require('../feish
 
 async function createIssue(params) {
   const fields = {
-    project_id: params.projectId,
-    stage_key: params.stageKey,
+    project_id: params.project_id || params.projectId,
+    stage_key: params.stage_key || params.stageKey,
     description: params.description,
     assignee: params.assignee,
-    priority: params.priority || 'medium',
+    priority: params.priority || '中',
     status: 'open',
   }
   return await createRecord('issues', fields)
