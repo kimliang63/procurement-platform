@@ -37,7 +37,8 @@ async function initProjectNodes(projectId) {
   return results
 }
 
-async function advanceNode(projectId, stageKey, status) {
+async function advanceNode(params) {
+  const { projectId, stageKey, status = 'completed' } = params
   const nodes = await listRecords('nodes')
   const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
   if (!node) throw new Error('Node not found')
@@ -49,19 +50,21 @@ async function advanceNode(projectId, stageKey, status) {
   return await updateRecord('nodes', node.record_id, fields)
 }
 
-async function updateNode(projectId, stageKey, params) {
+async function updateNode(params) {
+  const { projectId, stageKey, ...rest } = params
   const nodes = await listRecords('nodes')
   const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
   if (!node) throw new Error('Node not found')
 
   const fields = {}
-  if (params.assignee) fields.assignee = params.assignee
-  if (params.planDate) fields.plan_date = params.planDate
-  if (params.note) fields.note = params.note
+  if (rest.assignee) fields.assignee = rest.assignee
+  if (rest.planDate) fields.plan_date = rest.planDate
+  if (rest.note) fields.note = rest.note
   return await updateRecord('nodes', node.record_id, fields)
 }
 
-async function markNodeAbnormal(projectId, stageKey, reason) {
+async function markNodeAbnormal(params) {
+  const { projectId, stageKey, reason } = params
   const nodes = await listRecords('nodes')
   const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
   if (!node) throw new Error('Node not found')
