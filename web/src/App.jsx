@@ -62,7 +62,7 @@ function AuthCallback() {
 
 function LoginPage() {
   const handleLogin = () => {
-    window.location.href = '/api/auth/feishu'
+    window.location.href = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://thirty-rico-helena-shops.trycloudflare.com'}/api/auth/feishu`
   }
 
   return (
@@ -86,7 +86,7 @@ function PrivateRoute({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/procurement-platform">
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
