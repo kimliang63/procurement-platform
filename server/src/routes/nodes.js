@@ -4,7 +4,7 @@ const { callTool } = require('../mcp')
 
 router.get('/:projectId', async (req, res) => {
   try {
-    const nodes = await callTool('list_project_nodes', req.params.projectId)
+    const nodes = await callTool('list_project_nodes', { projectId: req.params.projectId })
     res.json({ data: nodes })
   } catch (e) {
     res.status(500).json({ error: e.message })

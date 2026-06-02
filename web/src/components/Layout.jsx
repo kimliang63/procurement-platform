@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Layout as AntLayout, Menu, Avatar, Dropdown, Space } from 'antd'
-import { DashboardOutlined, ProjectOutlined, WarningOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons'
+import { Layout as AntLayout, Menu, Avatar, Dropdown, Space, Tag } from 'antd'
+import { DashboardOutlined, ProjectOutlined, WarningOutlined, UserOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 
 const { Sider, Content, Header } = AntLayout
 
-const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: '项目总览' },
-  { key: '/projects', icon: <ProjectOutlined />, label: '项目列表' },
-  { key: '/issues', icon: <WarningOutlined />, label: '问题追踪' },
-]
+const roleLabels = {
+  admin: '管理员',
+  pm: '项目经理',
+  member: '成员',
+}
+
+const roleColors = {
+  admin: 'red',
+  pm: 'blue',
+  member: 'green',
+}
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -29,8 +35,17 @@ export default function Layout() {
     navigate('/login')
   }
 
+  const menuItems = [
+    { key: '/', icon: <DashboardOutlined />, label: '项目总览' },
+    { key: '/projects', icon: <ProjectOutlined />, label: '项目列表' },
+    { key: '/issues', icon: <WarningOutlined />, label: '问题追踪' },
+    { key: '/admin', icon: <TeamOutlined />, label: '用户管理', hidden: user?.role !== 'admin' },
+  ].filter(item => !item.hidden)
+
   const userMenu = {
     items: [
+      { key: 'role', label: `角色: ${roleLabels[user?.role] || '成员'}`, disabled: true },
+      { type: 'divider' },
       { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
     ],
   }
@@ -55,6 +70,7 @@ export default function Layout() {
             <Space style={{ cursor: 'pointer' }}>
               <Avatar icon={<UserOutlined />} src={user?.avatar} />
               <span>{user?.name || '未登录'}</span>
+              <Tag color={roleColors[user?.role]}>{roleLabels[user?.role] || '成员'}</Tag>
             </Space>
           </Dropdown>
         </Header>

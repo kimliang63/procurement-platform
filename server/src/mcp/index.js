@@ -15,6 +15,7 @@ const TOOLS = {
   list_project_nodes: nodes.listProjectNodes,
   create_issue: issues.createIssue,
   update_issue: issues.updateIssue,
+  delete_issue: issues.deleteIssue,
   list_issues: issues.listIssues,
 }
 

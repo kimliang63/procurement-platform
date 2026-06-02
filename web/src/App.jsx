@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
 import IssueTracker from './pages/IssueTracker'
+import AdminUsers from './pages/AdminUsers'
 
 function AuthCallback() {
   const [status, setStatus] = useState('处理中...')
@@ -14,7 +15,7 @@ function AuthCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
-    const user = params.get('user')
+    const userStr = params.get('user')
     const error = params.get('error')
 
     if (error) {
@@ -24,7 +25,27 @@ function AuthCallback() {
 
     if (token) {
       localStorage.setItem('feishu_token', token)
-      localStorage.setItem('feishu_user', user)
+      try {
+        const user = JSON.parse(decodeURIComponent(userStr))
+        localStorage.setItem('feishu_user', JSON.stringify(user))
+      } catch {}
+
+      // 获取用户角色（通过 token 校验身份）
+      const API_BASE = import.meta.env.VITE_API_BASE || ''
+      fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.data) {
+            const saved = localStorage.getItem('feishu_user')
+            const user = saved ? JSON.parse(saved) : {}
+            user.role = data.data.role || 'member'
+            localStorage.setItem('feishu_user', JSON.stringify(user))
+          }
+        })
+        .catch(() => {})
+
       setStatus('登录成功，跳转中...')
       setTimeout(() => navigate('/'), 1000)
     } else {
@@ -74,6 +95,7 @@ export default function App() {
           <Route path="projects" element={<ProjectList />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="issues" element={<IssueTracker />} />
+          <Route path="admin" element={<AdminUsers />} />
         </Route>
       </Routes>
     </BrowserRouter>

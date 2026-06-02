@@ -1,26 +1,38 @@
 import React, { useState, useEffect } from 'react'
-import { Row, Col, Card, Table, Tag } from 'antd'
+import { Row, Col, Card, Table, Tag, Select, Space } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import { getProjects } from '../api'
+import { getProjects, getUsers } from '../api'
 import NodeBar from '../components/NodeBar'
 
 export default function Dashboard() {
-  const [projects, setProjects] = useState([])
-  const [stats, setStats] = useState({ doing: 0, done: 0, problem: 0, total: 0 })
+  const [allProjects, setAllProjects] = useState([])
+  const [users, setUsers] = useState([])
+  const [filterOwner, setFilterOwner] = useState(null)
+  const [filterDept, setFilterDept] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    getProjects().then(res => {
-      const list = res.data?.data || []
-      setProjects(list)
-      setStats({
-        doing: list.filter(p => p.fields?.status === '正常').length,
-        done: list.filter(p => p.fields?.status === '已完成').length,
-        problem: list.filter(p => p.fields?.status === '异常').length,
-        total: list.length,
-      })
-    })
+    getProjects().then(res => setAllProjects(res.data?.data || []))
+    getUsers().then(res => setUsers(res.data?.data || []))
   }, [])
+
+  const filtered = allProjects.filter(p => {
+    if (filterOwner && p.fields?.owner !== filterOwner) return false
+    if (filterDept && p.fields?.department !== filterDept) return false
+    return true
+  })
+
+  const stats = {
+    doing: filtered.filter(p => p.fields?.status === '正常').length,
+    done: filtered.filter(p => p.fields?.status === '已完成').length,
+    problem: filtered.filter(p => p.fields?.status === '异常').length,
+    total: filtered.length,
+  }
+
+  const userOptions = users.map(u => ({
+    value: u.fields?.name,
+    label: u.fields?.name || '未知用户',
+  }))
 
   return (
     <div>
@@ -42,14 +54,35 @@ export default function Dashboard() {
           </Col>
         ))}
       </Row>
-      <Card title="项目列表">
+      <Card
+        title="项目列表"
+        extra={
+          <Space>
+            <Select
+              placeholder="按负责人筛选"
+              allowClear
+              style={{ width: 160 }}
+              options={userOptions}
+              onChange={setFilterOwner}
+            />
+            <Select
+              placeholder="按部门筛选"
+              allowClear
+              style={{ width: 120 }}
+              options={[{ value: 'FBU', label: 'FBU' }, { value: 'LBU', label: 'LBU' }, { value: 'ABU', label: 'ABU' }]}
+              onChange={setFilterDept}
+            />
+          </Space>
+        }
+      >
         <Table
-          dataSource={projects}
+          dataSource={filtered}
           rowKey="record_id"
           onRow={(record) => ({ onClick: () => navigate(`/projects/${record.record_id}`) })}
           columns={[
             { title: '项目名称', dataIndex: ['fields', 'name'] },
             { title: '品类', dataIndex: ['fields', 'category'], render: v => <Tag>{v}</Tag> },
+            { title: '所属部门', dataIndex: ['fields', 'department'] },
             { title: '预算(万)', dataIndex: ['fields', 'budget'] },
             { title: '负责人', dataIndex: ['fields', 'owner'] },
             { title: '当前阶段', dataIndex: ['fields', 'current_stage'] },
