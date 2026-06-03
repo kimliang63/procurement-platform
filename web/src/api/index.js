@@ -9,6 +9,8 @@ api.interceptors.request.use(config => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // 绕过 ngrok 免费层浏览器保护
+  config.headers['ngrok-skip-browser-warning'] = 'true'
   return config
 })
 
