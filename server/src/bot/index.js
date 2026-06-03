@@ -114,6 +114,10 @@ async function handleMessage(event) {
     if (isConfirm) {
       try {
         const data = await callTool('create_project', params)
+        // 自动初始化 13 个默认节点
+        if (data?.record_id) {
+          await callTool('init_project_nodes', { projectId: data.record_id })
+        }
         // 记录当前项目 ID，后续节点操作可直接引用
         const session = getSession(senderId)
         if (session) session.currentProjectId = data.record_id

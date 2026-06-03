@@ -3,13 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
-
-const STAGE_MAP = {
-  requirement: '需求确认', supplier_dev: '供应商开发', tech_exchange: '技术交流',
-  bid_approval: '招标审批', bid_issue: '发标', bid_qa: '招标答疑',
-  bid_return: '供应商回标', bid_open: '开标', bid_determine: '定标',
-  bid_notify: '中标通知', contract: '合同签订', production: '生产', shipping: '海运',
-}
+import { STAGE_MAP } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
@@ -51,7 +45,8 @@ export default function ProjectDetail() {
   const handleEdit = (record) => {
     setEditNode(record)
     form.setFieldsValue({
-      plan_date: record.fields?.plan_date || '',
+      plan_start: record.fields?.plan_start || '',
+      plan_end: record.fields?.plan_end || '',
       actual_date: record.fields?.actual_date || '',
     })
     setEditModal(true)
@@ -59,18 +54,14 @@ export default function ProjectDetail() {
 
   const handleSave = async () => {
     const values = await form.validateFields()
-    if (!values.plan_date) {
-      message.warning('请填写计划完成日期')
-      return
-    }
-    // 映射字段名：前端 snake_case → 后端 camelCase
     const updateFields = {
-      plan_date: values.plan_date,
+      plan_start: values.plan_start || '',
+      plan_end: values.plan_end || '',
       actual_date: values.actual_date || '',
     }
-    // 只有用户填了实际日期且节点未完成时，才触发标记完成
+    // 填了实际日期时自动标记完成
     if (values.actual_date && editNode.fields?.status !== 'completed') {
-      await advanceNode(id, editNode.fields?.stage_key, 'completed')
+      await advanceNode(id, editNode.fields?.stage_key, values.actual_date)
     }
     await updateNode(id, editNode.fields?.stage_key, updateFields)
     message.success('保存成功')
@@ -151,13 +142,14 @@ export default function ProjectDetail() {
     {
       title: '状态', dataIndex: ['fields', 'status'],
       render: v => {
-        const map = { completed: { color: 'green', text: '已完成' }, in_progress: { color: 'orange', text: '进行中' }, pending: { color: 'default', text: '待开始' }, blocked: { color: 'red', text: '异常' } }
+        const map = { completed: { color: 'green', text: '已完成' }, in_progress: { color: 'orange', text: '进行中' }, pending: { color: 'default', text: '待开始' }, blocked: { color: 'red', text: '异常' }, overdue: { color: 'red', text: '逾期' } }
         const cfg = map[v] || map.pending
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       }
     },
-    { title: '计划日期', dataIndex: ['fields', 'plan_date'] },
-    { title: '实际完成', dataIndex: ['fields', 'actual_date'] },
+    { title: '计划开始', dataIndex: ['fields', 'plan_start'], render: v => v || '-' },
+    { title: '计划结束', dataIndex: ['fields', 'plan_end'], render: v => v || '-' },
+    { title: '实际完成', dataIndex: ['fields', 'actual_date'], render: v => v || '-' },
     {
       title: '问题数', key: 'issues',
       render: (_, record) => {
@@ -243,7 +235,10 @@ export default function ProjectDetail() {
 
       <Modal title={`编辑节点 - ${STAGE_MAP[editNode?.fields?.stage_key] || editNode?.fields?.stage_key}`} open={editModal} onOk={handleSave} onCancel={() => setEditModal(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item name="plan_date" label="计划完成日期" rules={[{ required: true, message: '请填写计划完成日期' }]}>
+          <Form.Item name="plan_start" label="计划开始日期">
+            <Input type="date" />
+          </Form.Item>
+          <Form.Item name="plan_end" label="计划结束日期">
             <Input type="date" />
           </Form.Item>
           <Form.Item name="actual_date" label="实际完成日期">

@@ -3,13 +3,7 @@ import { Table, Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, createProject, deleteProject, getUsers } from '../api'
-
-const STAGE_MAP = {
-  requirement: '需求确认', supplier_dev: '供应商开发', tech_exchange: '技术交流',
-  bid_approval: '招标审批', bid_issue: '发标', bid_qa: '招标答疑',
-  bid_return: '供应商回标', bid_open: '开标', bid_determine: '定标',
-  bid_notify: '中标通知', contract: '合同签订', production: '生产', shipping: '海运',
-}
+import { STAGE_MAP } from '../constants/stages'
 
 export default function ProjectList() {
   const [projects, setProjects] = useState([])

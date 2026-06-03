@@ -29,7 +29,7 @@ router.post('/:projectId/:stageKey/advance', async (req, res) => {
     const node = await callTool('advance_node', {
       projectId: req.params.projectId,
       stageKey: req.params.stageKey,
-      status: req.body.status || 'completed',
+      actualDate: req.body.actualDate,
     })
     res.json({ data: node })
   } catch (e) {

@@ -2,14 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Table, Button, Tag, Space, Modal, Form, Input, Select, Popconfirm, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getIssues, createIssue, updateIssue, deleteIssue, getProjects, getUsers } from '../api'
-
-const STAGE_MAP = {
-  requirement: '需求确认', supplier_dev: '供应商开发', tech_exchange: '技术交流',
-  bid_approval: '招标审批', bid_issue: '发标', bid_qa: '招标答疑',
-  bid_return: '供应商回标', bid_open: '开标', bid_determine: '定标',
-  bid_notify: '中标通知', contract: '合同签订', production: '生产', shipping: '海运',
-}
-const STAGE_OPTIONS = Object.entries(STAGE_MAP).map(([k, v]) => ({ value: k, label: v }))
+import { STAGE_MAP, STAGE_OPTIONS } from '../constants/stages'
 
 export default function IssueTracker() {
   const [issues, setIssues] = useState([])

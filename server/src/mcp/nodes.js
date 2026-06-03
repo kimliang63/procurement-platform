@@ -19,6 +19,26 @@ const STAGE_MAP = {
 
 const STAGE_KEYS = Object.keys(STAGE_MAP)
 
+function computeNodeStatus(node) {
+  const f = node.fields || {}
+  if (f.abnormal_reason) return 'blocked'
+
+  const today = new Date().toISOString().split('T')[0]
+  const planStart = f.plan_start || ''
+  const planEnd = f.plan_end || f.plan_date || ''
+  const actualDate = f.actual_date || ''
+
+  if (actualDate) return 'completed'
+  if (!planStart && !planEnd) {
+    const stageInfo = STAGE_MAP[f.stage_key]
+    return stageInfo?.order === 1 ? 'in_progress' : 'pending'
+  }
+  if (planStart && today < planStart) return 'pending'
+  if (planStart && planEnd && today >= planStart && today <= planEnd) return 'in_progress'
+  if (planEnd && today > planEnd) return 'overdue'
+  return 'pending'
+}
+
 async function initProjectNodes(params) {
   const { projectId } = params
   const records = Object.entries(STAGE_MAP).map(([key, info]) => ({
@@ -26,6 +46,8 @@ async function initProjectNodes(params) {
       project_id: projectId,
       stage_key: key,
       status: info.order === 1 ? 'in_progress' : 'pending',
+      plan_start: '',
+      plan_end: '',
       plan_date: '',
       actual_date: '',
       note: '',
@@ -40,32 +62,21 @@ async function initProjectNodes(params) {
 }
 
 async function advanceNode(params) {
-  const { projectId, stageKey, status = 'completed', planDate, actualDate } = params
+  const { projectId, stageKey, actualDate } = params
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
-  const nodes = await listRecords('nodes')
-  const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
+  const nodes = await listRecords('nodes', {
+    filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
+  })
+  const node = nodes[0]
   if (!node) throw new Error(`未找到节点: projectId=${projectId}, stageKey=${stageKey}`)
   if (!node.record_id) throw new Error('节点数据异常: 缺少 record_id')
 
-  // 标记完成时，必须有计划日期和实际日期
-  if (status === 'completed') {
-    const finalPlanDate = planDate || node.fields?.plan_date
-    if (!finalPlanDate) {
-      const error = new Error('请先设置计划完成日期')
-      error.code = 'NEED_PLAN_DATE'
-      throw error
-    }
-    const finalActualDate = actualDate || node.fields?.actual_date || new Date().toISOString().split('T')[0]
-    return await updateRecord('nodes', node.record_id, {
-      status,
-      plan_date: finalPlanDate,
-      actual_date: finalActualDate,
-    })
-  }
-
-  return await updateRecord('nodes', node.record_id, { status })
+  const finalActualDate = actualDate || new Date().toISOString().split('T')[0]
+  return await updateRecord('nodes', node.record_id, {
+    actual_date: finalActualDate,
+  })
 }
 
 async function updateNode(params) {
@@ -73,19 +84,21 @@ async function updateNode(params) {
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
-  const nodes = await listRecords('nodes')
-  const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
+  const nodes = await listRecords('nodes', {
+    filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
+  })
+  const node = nodes[0]
   if (!node) throw new Error(`未找到节点: projectId=${projectId}, stageKey=${stageKey}`)
   if (!node.record_id) throw new Error('节点数据异常: 缺少 record_id')
 
   const fields = {}
   if (rest.assignee) fields.assignee = rest.assignee
+  if (rest.plan_start !== undefined) fields.plan_start = rest.plan_start
+  if (rest.plan_end !== undefined) fields.plan_end = rest.plan_end
   if (rest.plan_date !== undefined) fields.plan_date = rest.plan_date
   if (rest.actual_date !== undefined) fields.actual_date = rest.actual_date
   if (rest.note !== undefined) fields.note = rest.note
-  if (rest.issue_content !== undefined) fields.issue_content = rest.issue_content
-  if (rest.issue_status !== undefined) fields.issue_status = rest.issue_status
-  if (rest.status) fields.status = rest.status
+  if (rest.abnormal_reason !== undefined) fields.abnormal_reason = rest.abnormal_reason
   return await updateRecord('nodes', node.record_id, fields)
 }
 
@@ -94,8 +107,10 @@ async function markNodeAbnormal(params) {
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
-  const nodes = await listRecords('nodes')
-  const node = nodes.find(n => n.fields.project_id === projectId && n.fields.stage_key === stageKey)
+  const nodes = await listRecords('nodes', {
+    filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
+  })
+  const node = nodes[0]
   if (!node) throw new Error(`未找到节点: projectId=${projectId}, stageKey=${stageKey}`)
   if (!node.record_id) throw new Error('节点数据异常: 缺少 record_id')
 
@@ -107,10 +122,12 @@ async function markNodeAbnormal(params) {
 
 async function listProjectNodes(params) {
   const { projectId } = params
-  const nodes = await listRecords('nodes')
+  const nodes = await listRecords('nodes', {
+    filter: `CurrentValue.[project_id]="${projectId}"`
+  })
   return nodes
-    .filter(n => n.fields.project_id === projectId)
     .sort((a, b) => (STAGE_MAP[a.fields.stage_key]?.order || 0) - (STAGE_MAP[b.fields.stage_key]?.order || 0))
+    .map(n => ({ ...n, fields: { ...n.fields, status: computeNodeStatus(n) } }))
 }
 
-module.exports = { initProjectNodes, advanceNode, updateNode, markNodeAbnormal, listProjectNodes, STAGE_MAP, STAGE_KEYS }
+module.exports = { initProjectNodes, advanceNode, updateNode, markNodeAbnormal, listProjectNodes, computeNodeStatus, STAGE_MAP, STAGE_KEYS }

@@ -19,8 +19,8 @@ export const updateProject = (id, data) => api.put(`/projects/${id}`, data)
 export const deleteProject = (id) => api.delete(`/projects/${id}`)
 
 export const getProjectNodes = (projectId) => api.get(`/nodes/${projectId}`)
-export const advanceNode = (projectId, stageKey, status) =>
-  api.post(`/nodes/${projectId}/${stageKey}/advance`, { status })
+export const advanceNode = (projectId, stageKey, actualDate) =>
+  api.post(`/nodes/${projectId}/${stageKey}/advance`, { actualDate })
 export const markNodeAbnormal = (projectId, stageKey, reason) =>
   api.post(`/nodes/${projectId}/${stageKey}/abnormal`, { reason })
 export const updateNode = (projectId, stageKey, data) =>
