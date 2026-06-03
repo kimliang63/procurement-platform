@@ -31,7 +31,7 @@ function AuthCallback() {
       } catch {}
 
       // 获取用户角色（通过 token 校验身份）
-      const API_BASE = import.meta.env.VITE_API_BASE || ''
+      const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
       fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -62,7 +62,8 @@ function AuthCallback() {
 
 function LoginPage() {
   const handleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://thirty-rico-helena-shops.trycloudflare.com'}/api/auth/feishu`
+    const base = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+    window.location.href = `${base}/api/auth/feishu`
   }
 
   return (

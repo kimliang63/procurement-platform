@@ -56,7 +56,7 @@ router.get('/feishu/callback', async (req, res) => {
       name: employeeName,
       avatar: avatarUrl,
     }))
-    res.redirect(`${process.env.WEB_URL}/auth/callback?token=${access_token}&user=${user}`)
+    res.redirect(`${process.env.WEB_URL}/auth/callback?token=${encodeURIComponent(access_token)}&user=${user}`)
   } catch (e) {
     console.error('SSO callback error:', e.message)
     console.error('SSO callback error stack:', e.stack)

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, Table, Tag, Select, message, Space } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 
-const API_BASE = import.meta.env.VITE_API_BASE || ''
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 const roleLabels = {
   admin: '管理员',

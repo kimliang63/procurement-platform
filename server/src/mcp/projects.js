@@ -13,7 +13,7 @@ async function createProject(params) {
     category: params.category,
     owner: params.owner,
     department: params.department || '',
-    budget: params.budget || 0,
+    budget: Number(params.budget) || 0,
     plan_start: params.planStart || '',
     plan_end: params.planEnd || '',
     current_stage: 'requirement',
@@ -31,7 +31,7 @@ async function updateProject(params) {
   if (rest.name) fields.name = rest.name
   if (rest.owner) fields.owner = rest.owner
   if (rest.department) fields.department = rest.department
-  if (rest.budget !== undefined) fields.budget = rest.budget
+  if (rest.budget !== undefined) fields.budget = Number(rest.budget)
   if (rest.planStart) fields.plan_start = rest.planStart
   if (rest.planEnd) fields.plan_end = rest.planEnd
   if (rest.remark !== undefined) fields.remark = rest.remark
