@@ -24,11 +24,12 @@ MVP 已完成，业务测试中
 - Dashboard 数据统计
 
 ## 部署架构
-- 前端：`https://kimliang63.github.io/procurement-platform`
-- 后端：`https://<ngrok-url>/api`（每次重启变化）
+- 前端 + 后端：Vercel（静态站点 + Serverless Functions）
 - 数据库：飞书多维表格（固定）
+- 本地开发：`npm run dev`（server + web 并行启动）
 
 ## 项目专属规则
 - 继承全局 ~/CLAUDE.md 规则
-- 后端使用 ngrok 穿透，SERVER_URL 需与 ngrok 隧道地址一致
-- 前端 build 时 web/.env 需切换到生产 URL，build 完恢复为 `/api`
+- Vercel 部署：SERVER_URL 和 WEB_URL 需设为 Vercel 项目域名
+- 本地开发：`npm run dev` 启动 server(4000) + web(5173)
+- 分支：main（稳定版）、v2-dev（新功能开发）
