@@ -30,13 +30,15 @@ export default function ProjectDetail() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [pRes, nRes, iRes, uRes] = await Promise.all([
-      getProject(id), getProjectNodes(id), getIssues({ projectId: id }), getUsers()
-    ])
-    setProject(pRes.data?.data)
-    setNodes(nRes.data?.data || [])
-    setIssues(iRes.data?.data || [])
-    setUsers(uRes.data?.data || [])
+    try {
+      const [pRes, nRes, iRes, uRes] = await Promise.all([
+        getProject(id), getProjectNodes(id), getIssues({ projectId: id }), getUsers()
+      ])
+      setProject(pRes.data?.data)
+      setNodes(nRes.data?.data || [])
+      setIssues(iRes.data?.data || [])
+      setUsers(uRes.data?.data || [])
+    } catch {}
     setLoading(false)
   }
 
@@ -94,6 +96,7 @@ export default function ProjectDetail() {
   }
 
   const handleEditProject = () => {
+    const f = project?.fields
     projectForm.setFieldsValue({
       name: f?.name,
       category: f?.category,

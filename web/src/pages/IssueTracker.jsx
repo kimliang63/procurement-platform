@@ -17,10 +17,12 @@ export default function IssueTracker() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [iRes, pRes, uRes] = await Promise.all([getIssues(), getProjects(), getUsers()])
-    setIssues(iRes.data?.data || [])
-    setProjects(pRes.data?.data || [])
-    setUsers(uRes.data?.data || [])
+    try {
+      const [iRes, pRes, uRes] = await Promise.all([getIssues(), getProjects(), getUsers()])
+      setIssues(iRes.data?.data || [])
+      setProjects(pRes.data?.data || [])
+      setUsers(uRes.data?.data || [])
+    } catch {}
     setLoading(false)
   }
 

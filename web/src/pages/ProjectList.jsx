@@ -17,14 +17,18 @@ export default function ProjectList() {
 
   const fetchProjects = async () => {
     setLoading(true)
-    const res = await getProjects()
-    setProjects(res.data?.data || [])
+    try {
+      const res = await getProjects()
+      setProjects(res.data?.data || [])
+    } catch {}
     setLoading(false)
   }
 
   const fetchUsers = async () => {
-    const res = await getUsers()
-    setUsers(res.data?.data || [])
+    try {
+      const res = await getUsers()
+      setUsers(res.data?.data || [])
+    } catch {}
   }
 
   useEffect(() => {

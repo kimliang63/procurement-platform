@@ -12,8 +12,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    getProjects().then(res => setAllProjects(res.data?.data || []))
-    getUsers().then(res => setUsers(res.data?.data || []))
+    getProjects().then(res => setAllProjects(res.data?.data || [])).catch(() => {})
+    getUsers().then(res => setUsers(res.data?.data || [])).catch(() => {})
   }, [])
 
   const filtered = allProjects.filter(p => {

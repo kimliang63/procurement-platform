@@ -10,7 +10,12 @@ const { callTool } = require('./mcp')
 const client = require('./feishu/client')
 
 const app = express()
-app.use(cors())
+app.use(cors({
+  origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['https://procurement-platform-rosy.vercel.app', 'http://localhost:5173'],
+  credentials: true,
+}))
 app.use(express.json())
 
 const PORT = process.env.PORT || 4000

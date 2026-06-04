@@ -6,7 +6,9 @@
     "dev:server": "cd server && npm run dev",
     "dev:web": "cd web && npm run dev",
     "build": "cd web && npm run build",
-    "test": "cd server && npm test"
+    "test": "cd server && npm test",
+    "deploy": "npx vercel --prod --yes",
+    "deploy:preview": "npx vercel --yes"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.66.0",
