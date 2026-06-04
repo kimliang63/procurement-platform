@@ -1,4 +1,4 @@
-require('dotenv').config()
+if (!process.env.VERCEL) require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const projectsRouter = require('./routes/projects')
@@ -220,6 +220,10 @@ app.post('/webhook/card', async (req, res) => {
   res.json({ success: true })
 })
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`)
+  })
+}
+
+module.exports = app

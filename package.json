@@ -1,0 +1,14 @@
+{
+  "name": "procurement-platform",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "build": "cd web && npm run build",
+    "test": "cd server && npm test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
