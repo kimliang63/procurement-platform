@@ -10,3 +10,4 @@ coverage/
 .superpowers/
 _old_procurement-platform/
 prototype/
+.vercel

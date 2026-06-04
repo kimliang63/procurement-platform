@@ -220,6 +220,18 @@ app.post('/webhook/card', async (req, res) => {
   res.json({ success: true })
 })
 
+// 静态文件服务（Vercel 生产环境）
+if (process.env.VERCEL) {
+  const path = require('path')
+  const fs = require('fs')
+  const distDir = path.join(__dirname, '../../web/dist')
+
+  app.use(express.static(distDir))
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'))
+  })
+}
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`)
