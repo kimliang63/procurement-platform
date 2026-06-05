@@ -14,6 +14,9 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { chat_id, project_id, project_name } = req.body
+    if (!chat_id || !project_id) {
+      return res.status(400).json({ error: 'chat_id and project_id are required' })
+    }
     // Check if group already bound
     const existing = await listRecords('groups')
     if (existing.some(g => g.fields?.chat_id === chat_id)) {

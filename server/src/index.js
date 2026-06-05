@@ -40,10 +40,11 @@ app.get('/api/stats', async (req, res) => {
     const issues = await callTool('list_issues')
 
     const stats = {
-      doing: projects.filter(p => p.fields?.status === '进行中').length,
-      done: projects.filter(p => p.fields?.status === '项目完成').length,
+      doing: projects.filter(p => p.fields?.status === '进行中' || p.fields?.status === '正常').length,
+      done: projects.filter(p => p.fields?.status === '项目完成' || p.fields?.status === '已完成').length,
       paused: projects.filter(p => p.fields?.status === '项目暂停').length,
       cancelled: projects.filter(p => p.fields?.status === '项目取消').length,
+      problem: projects.filter(p => p.fields?.status === '异常').length,
       total: projects.length,
       issues_open: issues.filter(i => i.fields?.status === 'open').length,
       issues_in_progress: issues.filter(i => i.fields?.status === 'in_progress').length,

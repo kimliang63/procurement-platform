@@ -27,7 +27,21 @@ async function createProject(params) {
     status: '进行中',
     remark: params.remark || '',
   }
-  return await createRecord('projects', fields)
+
+  const result = await createRecord('projects', fields)
+
+  // Post-creation duplicate check to handle race conditions
+  const allProjects = await listRecords('projects')
+  const duplicates = allProjects.filter(p => p.fields?.no === projectNo)
+  if (duplicates.length > 1) {
+    const newest = duplicates.sort((a, b) => (b.created_time || 0) - (a.created_time || 0))[0]
+    const newSeq = String(allProjects.filter(p => p.fields?.no?.startsWith(`${prefix}-${year}`)).length).padStart(3, '0')
+    const newNo = `${prefix}-${year}-${newSeq}`
+    await updateRecord('projects', newest.record_id, { no: newNo })
+    result.fields.no = newNo
+  }
+
+  return result
 }
 
 async function updateProject(params) {
