@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Button, Card, Result } from 'antd'
 import Layout from './components/Layout'
 import DashboardV2 from './pages/DashboardV2'
-import ProjectList from './pages/ProjectList'
+import ProjectTimeline from './pages/ProjectTimeline'
 import ProjectDetail from './pages/ProjectDetail'
 import IssueTracker from './pages/IssueTracker'
 import AdminUsers from './pages/AdminUsers'
@@ -93,7 +93,7 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<DashboardV2 />} />
-          <Route path="projects" element={<ProjectList />} />
+          <Route path="projects" element={<ProjectTimeline />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="issues" element={<IssueTracker />} />
           <Route path="admin" element={<AdminUsers />} />
