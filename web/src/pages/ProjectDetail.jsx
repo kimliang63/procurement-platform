@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs } from 'antd'
+import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
-import { STAGE_MAP } from '../constants/stages'
+import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
   in_progress: { color: 'blue', text: '处理中' },
   closed: { color: 'green', text: '已关闭' },
+}
+
+const PROJECT_STATUS_COLORS = {
+  '进行中': 'blue',
+  '项目完成': 'green',
+  '项目暂停': 'orange',
+  '项目取消': 'red',
 }
 
 export default function ProjectDetail() {
@@ -50,6 +57,8 @@ export default function ProjectDetail() {
       plan_start: record.fields?.plan_start || '',
       plan_end: record.fields?.plan_end || '',
       actual_date: record.fields?.actual_date || '',
+      status: record.fields?.status || 'pending',
+      note: record.fields?.note || '',
     })
     setEditModal(true)
   }
@@ -60,6 +69,8 @@ export default function ProjectDetail() {
       plan_start: values.plan_start || '',
       plan_end: values.plan_end || '',
       actual_date: values.actual_date || '',
+      status: values.status || 'pending',
+      note: values.note || '',
     }
     // 填了实际日期时自动标记完成
     if (values.actual_date && editNode.fields?.status !== 'completed') {
@@ -102,6 +113,9 @@ export default function ProjectDetail() {
       category: f?.category,
       department: f?.department,
       owner: f?.owner,
+      bu: f?.bu,
+      task_type: f?.task_type,
+      application_no: f?.application_no,
       budget: f?.budget,
       plan_start: f?.plan_start,
       plan_end: f?.plan_end,
@@ -118,6 +132,9 @@ export default function ProjectDetail() {
       category: values.category,
       department: values.department,
       owner: values.owner,
+      bu: values.bu,
+      taskType: values.task_type,
+      applicationNo: values.application_no,
       budget: values.budget,
       planStart: values.plan_start,
       planEnd: values.plan_end,
@@ -208,12 +225,14 @@ export default function ProjectDetail() {
       >
         <Descriptions column={3}>
           <Descriptions.Item label="负责人">{f?.owner}</Descriptions.Item>
+          <Descriptions.Item label="所属BU">{f?.bu || '-'}</Descriptions.Item>
+          <Descriptions.Item label="任务类型">{f?.task_type || '-'}</Descriptions.Item>
+          <Descriptions.Item label="采购金额">{f?.budget}万</Descriptions.Item>
+          <Descriptions.Item label="申请单号">{f?.application_no || '-'}</Descriptions.Item>
+          <Descriptions.Item label="状态"><Tag color={PROJECT_STATUS_COLORS[f?.status] || 'default'}>{f?.status}</Tag></Descriptions.Item>
           <Descriptions.Item label="所属部门">{f?.department}</Descriptions.Item>
           <Descriptions.Item label="品类">{f?.category}</Descriptions.Item>
-          <Descriptions.Item label="预算">{f?.budget}万</Descriptions.Item>
           <Descriptions.Item label="计划周期">{f?.plan_start} ~ {f?.plan_end}</Descriptions.Item>
-          <Descriptions.Item label="当前阶段">{STAGE_MAP[f?.current_stage] || f?.current_stage}</Descriptions.Item>
-          <Descriptions.Item label="状态"><Tag color={f?.status === '异常' ? 'red' : 'blue'}>{f?.status}</Tag></Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -223,7 +242,36 @@ export default function ProjectDetail() {
             key: 'nodes',
             label: '节点进度',
             children: (
-              <Table dataSource={nodes} rowKey="record_id" pagination={false} columns={nodeColumns} />
+              <>
+                {/* Timeline bar showing all 15 stages */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    {STAGE_KEYS.map(stageKey => {
+                      const node = nodes.find(n => n.fields?.stage_key === stageKey)
+                      const status = node?.fields?.status || 'pending'
+                      return (
+                        <Tooltip key={stageKey} title={`${STAGE_MAP[stageKey]}: ${status === 'completed' ? '已完成' : status === 'in_progress' ? '进行中' : status === 'blocked' ? '异常' : '待开始'}`}>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: 12,
+                              borderRadius: 6,
+                              background: NODE_STATUS_COLORS[status] || NODE_STATUS_COLORS.pending,
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => node && handleEdit(node)}
+                          />
+                        </Tooltip>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: '#999' }}>
+                    <span>{STAGE_MAP[STAGE_KEYS[0]]}</span>
+                    <span>{STAGE_MAP[STAGE_KEYS[STAGE_KEYS.length - 1]]}</span>
+                  </div>
+                </div>
+                <Table dataSource={nodes} rowKey="record_id" pagination={false} columns={nodeColumns} />
+              </>
             )
           },
           {
@@ -238,6 +286,14 @@ export default function ProjectDetail() {
 
       <Modal title={`编辑节点 - ${STAGE_MAP[editNode?.fields?.stage_key] || editNode?.fields?.stage_key}`} open={editModal} onOk={handleSave} onCancel={() => setEditModal(false)}>
         <Form form={form} layout="vertical">
+          <Form.Item name="status" label="节点状态">
+            <Select options={[
+              { value: 'pending', label: '待开始' },
+              { value: 'in_progress', label: '进行中' },
+              { value: 'completed', label: '已完成' },
+              { value: 'blocked', label: '异常' },
+            ]} />
+          </Form.Item>
           <Form.Item name="plan_start" label="计划开始日期">
             <Input type="date" />
           </Form.Item>
@@ -246,6 +302,9 @@ export default function ProjectDetail() {
           </Form.Item>
           <Form.Item name="actual_date" label="实际完成日期">
             <Input type="date" />
+          </Form.Item>
+          <Form.Item name="note" label="备注">
+            <Input.TextArea />
           </Form.Item>
         </Form>
       </Modal>
@@ -264,9 +323,18 @@ export default function ProjectDetail() {
         </Form>
       </Modal>
 
-      <Modal title="编辑项目" open={projectModal} onOk={handleSaveProject} onCancel={() => setProjectModal(false)}>
+      <Modal title="编辑项目" open={projectModal} onOk={handleSaveProject} onCancel={() => setProjectModal(false)} width={640}>
         <Form form={projectForm} layout="vertical">
           <Form.Item name="name" label="项目名称" rules={[{ required: true, message: '请输入项目名称' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="bu" label="所属BU">
+            <Select options={[{ value: 'FBU' }, { value: 'LBU' }, { value: 'ABU' }, { value: 'MBU' }]} />
+          </Form.Item>
+          <Form.Item name="task_type" label="任务类型">
+            <Select options={[{ value: '设备采购' }, { value: '材料采购' }, { value: '服务采购' }, { value: '工程采购' }]} />
+          </Form.Item>
+          <Form.Item name="application_no" label="申请单号">
             <Input />
           </Form.Item>
           <Form.Item name="category" label="采购品类" rules={[{ required: true, message: '请选择采购品类' }]}>
