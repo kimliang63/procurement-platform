@@ -17,9 +17,9 @@
 - 本地开发：`npm run dev`（server:4000 + web:5173）
 
 ## 分支策略
-- `main` — 稳定版，已部署到生产环境
-- `v2-dev` — 新功能开发分支
-- 回滚方式：`git checkout main` 或 `git revert` 到指定 commit
+- `main` — 稳定版（V2.0），已部署到生产环境
+- `v2-dev` — V2 开发分支（已合并到 main）
+- 回滚方式：`git checkout v1.0` 或参考下方 Rollback Procedure
 
 ## V1.0 已实现功能（2026-06-04 验证通过）
 
@@ -113,3 +113,31 @@
 ## 部署命令
 - 前端：`npm run deploy`（Vercel 生产部署）
 - 后端：`railway up --service procurement-server`
+
+## Rollback Procedure
+
+### Frontend (Vercel)
+```bash
+# Rollback to V1.0
+git checkout v1.0 -- web/
+npm run deploy
+
+# Or rollback to specific commit
+git checkout <commit-sha> -- web/
+npm run deploy
+```
+
+### Backend (Railway)
+```bash
+# Rollback to V1.0
+git checkout v1.0 -- server/
+railway up --service procurement-server
+
+# Or rollback to specific commit
+git checkout <commit-sha> -- server/
+railway up --service procurement-server
+```
+
+### Database
+- No schema migration needed (Bitable is schema-less)
+- V1 data remains compatible with V2 (status values supported both ways)
