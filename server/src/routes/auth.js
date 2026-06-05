@@ -2,43 +2,56 @@ const express = require('express')
 const router = express.Router()
 const client = require('../feishu/client')
 const { listRecords, createRecord, updateRecord } = require('../feishu/bitable')
+const { getFeishuUserInfo } = require('../feishu/user')
 
 // 跳转飞书授权页
 router.get('/feishu', (req, res) => {
   const appId = process.env.FEISHU_APP_ID
   const redirectUri = encodeURIComponent(`${process.env.SERVER_URL}/api/auth/feishu/callback`)
   const url = `https://open.feishu.cn/open-apis/authen/v1/authorize?app_id=${appId}&redirect_uri=${redirectUri}&response_type=code`
+  console.log('[Auth] Redirecting to Feishu:', url.substring(0, 100))
   res.redirect(url)
 })
 
 // 飞书回调
 router.get('/feishu/callback', async (req, res) => {
   const { code } = req.query
+  console.log('[Auth] Callback received, code:', code ? code.substring(0, 10) + '...' : 'MISSING')
   if (!code) return res.status(400).json({ error: 'Missing code' })
 
   try {
-    // 用 code 换取 user_access_token（token响应已包含用户信息）
     const tokenRes = await client.authen.accessToken.create({
       data: { grant_type: 'authorization_code', code },
     })
-    const tokenData = tokenRes.data
-    const access_token = tokenData.access_token
-    const openId = tokenData.open_id || ''
-    const employeeName = tokenData.name || '未知用户'
-    const avatarUrl = tokenData.avatar_url || tokenData.avatar_thumb || ''
 
-    console.log('User info:', { openId, employeeName, avatarUrl })
+    // Log the full response structure for debugging
+    console.log('[Auth] Token response code:', tokenRes.code)
+    console.log('[Auth] Token response msg:', tokenRes.msg)
+    console.log('[Auth] Token data keys:', tokenRes.data ? Object.keys(tokenRes.data) : 'null')
+    console.log('[Auth] Token data:', JSON.stringify(tokenRes.data, null, 2))
 
-    // 写入 users 表（存在则更新，不存在则创建）
+    const tokenData = tokenRes.data || {}
+    // Handle both flat and nested response formats
+    const access_token = tokenData.access_token || tokenData.user?.access_token || ''
+    const openId = tokenData.open_id || tokenData.user?.open_id || ''
+    const employeeName = tokenData.name || tokenData.user?.name || '未知用户'
+    const avatarUrl = tokenData.avatar_url || tokenData.avatar_thumb || tokenData.user?.avatar_url || ''
+
+    console.log('[Auth] Extracted:', { hasToken: !!access_token, openId, employeeName })
+
+    if (!access_token) {
+      console.error('[Auth] No access_token in response!')
+      return res.redirect(`${process.env.WEB_URL}/auth/callback?error=${encodeURIComponent('Token exchange failed: no access_token')}`)
+    }
+
+    // 写入 users 表
     const existingUsers = await listRecords('users')
     const existing = existingUsers.find(u => u.fields.feishu_open_id === openId)
-
-    // 第一个用户自动成为管理员
     const isFirstUser = existingUsers.length === 0
 
     const userData = {
       feishu_open_id: openId,
-      feishu_user_id: tokenData.user_id || '',
+      feishu_user_id: tokenData.user_id || tokenData.user?.user_id || '',
       name: employeeName,
       avatar: avatarUrl,
       role: isFirstUser ? 'admin' : 'member',
@@ -50,32 +63,30 @@ router.get('/feishu/callback', async (req, res) => {
       await createRecord('users', userData)
     }
 
-    // 重定向回前端，带用户信息
     const user = encodeURIComponent(JSON.stringify({
       openId,
       name: employeeName,
       avatar: avatarUrl,
     }))
-    res.redirect(`${process.env.WEB_URL}/auth/callback?token=${encodeURIComponent(access_token)}&user=${user}`)
+    const redirectUrl = `${process.env.WEB_URL}/auth/callback?token=${encodeURIComponent(access_token)}&user=${user}`
+    console.log('[Auth] Redirecting to frontend:', `${process.env.WEB_URL}/auth/callback?token=...&user=...`)
+    res.redirect(redirectUrl)
   } catch (e) {
-    console.error('SSO callback error:', e.message)
-    console.error('SSO callback error stack:', e.stack)
+    console.error('[Auth] SSO callback error:', e.message)
+    console.error('[Auth] SSO callback stack:', e.stack)
     res.redirect(`${process.env.WEB_URL}/auth/callback?error=${encodeURIComponent(e.message)}`)
   }
 })
 
 // 获取当前用户信息（通过 token 校验身份）
-// TODO: Consolidate duplicated token-lookup logic with /role endpoint and middleware/auth.js extractUser
 router.get('/me', async (req, res) => {
   const authHeader = req.headers.authorization
   if (!authHeader) return res.status(401).json({ error: 'No token' })
 
   try {
     const token = authHeader.replace('Bearer ', '')
-    const userRes = await client.authen.userInfo.get({
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const openId = userRes.data?.open_id
+    const userInfo = await getFeishuUserInfo(token)
+    const openId = userInfo.open_id
     if (!openId) return res.status(401).json({ error: 'Invalid token' })
 
     const users = await listRecords('users')
@@ -92,7 +103,8 @@ router.get('/me', async (req, res) => {
       }
     })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('[Auth] /me error:', e.message)
+    res.status(401).json({ error: e.message })
   }
 })
 
@@ -103,12 +115,9 @@ router.put('/role', async (req, res) => {
 
   try {
     const token = authHeader.replace('Bearer ', '')
-    const userRes = await client.authen.userInfo.get({
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const operatorOpenId = userRes.data?.open_id || ''
+    const userInfo = await getFeishuUserInfo(token)
+    const operatorOpenId = userInfo.open_id || ''
 
-    // 检查操作者是否为管理员
     const users = await listRecords('users')
     const operator = users.find(u => u.fields.feishu_open_id === operatorOpenId)
     if (!operator || operator.fields.role !== 'admin') {

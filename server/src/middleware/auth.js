@@ -1,4 +1,4 @@
-const client = require('../feishu/client')
+const { getFeishuUserInfo } = require('../feishu/user')
 const { listRecords } = require('../feishu/bitable')
 
 // Simple in-memory cache for user lookups
@@ -14,10 +14,8 @@ async function extractUser(req, res, next) {
 
   const token = authHeader.slice(7)
   try {
-    const userRes = await client.authen.userInfo.get({
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const openId = userRes.data?.open_id
+    const userInfo = await getFeishuUserInfo(token)
+    const openId = userInfo.open_id
     if (!openId) {
       return res.status(401).json({ error: 'token无效' })
     }
