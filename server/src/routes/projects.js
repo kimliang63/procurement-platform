@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
-const { filterByOwner } = require('../middleware/auth')
+const { filterByOwner, requireAdmin } = require('../middleware/auth')
 
 router.get('/', filterByOwner, async (req, res) => {
   try {
@@ -43,7 +43,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     await callTool('delete_project', { projectId: req.params.id })
     res.json({ success: true })

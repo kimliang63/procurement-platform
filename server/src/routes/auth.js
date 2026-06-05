@@ -65,6 +65,7 @@ router.get('/feishu/callback', async (req, res) => {
 })
 
 // 获取当前用户信息（通过 token 校验身份）
+// TODO: Consolidate duplicated token-lookup logic with /role endpoint and middleware/auth.js extractUser
 router.get('/me', async (req, res) => {
   const authHeader = req.headers.authorization
   if (!authHeader) return res.status(401).json({ error: 'No token' })

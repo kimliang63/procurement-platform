@@ -69,9 +69,13 @@ async function getProject(params) {
 }
 
 async function listProjects(params = {}) {
-  let projects = await listRecords('projects', params)
-  if (params.owner) {
-    projects = projects.filter(p => p.fields?.owner === params.owner)
+  // Only pass known params to listRecords to prevent unintended filter injection
+  const filterParams = {}
+  if (params.owner) filterParams.owner = params.owner
+
+  let projects = await listRecords('projects', filterParams)
+  if (filterParams.owner) {
+    projects = projects.filter(p => p.fields?.owner === filterParams.owner)
   }
   return projects
 }

@@ -2,7 +2,25 @@ const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
 
-router.get('/:projectId', async (req, res) => {
+// Helper: check if user owns the project (admin bypasses)
+async function checkProjectOwnership(req, res, next) {
+  if (req.user?.role === 'admin') return next()
+
+  const projectId = req.params.projectId
+  if (!projectId) return next()
+
+  try {
+    const project = await callTool('get_project', { projectId })
+    if (project?.fields?.owner !== req.user?.name) {
+      return res.status(403).json({ error: '无权操作此项目' })
+    }
+    next()
+  } catch (e) {
+    next(e)
+  }
+}
+
+router.get('/:projectId', checkProjectOwnership, async (req, res) => {
   try {
     const nodes = await callTool('list_project_nodes', { projectId: req.params.projectId })
     res.json({ data: nodes })
@@ -11,7 +29,7 @@ router.get('/:projectId', async (req, res) => {
   }
 })
 
-router.put('/:projectId/:stageKey', async (req, res) => {
+router.put('/:projectId/:stageKey', checkProjectOwnership, async (req, res) => {
   try {
     const node = await callTool('update_node', {
       projectId: req.params.projectId,
@@ -24,7 +42,7 @@ router.put('/:projectId/:stageKey', async (req, res) => {
   }
 })
 
-router.post('/:projectId/:stageKey/advance', async (req, res) => {
+router.post('/:projectId/:stageKey/advance', checkProjectOwnership, async (req, res) => {
   try {
     const node = await callTool('advance_node', {
       projectId: req.params.projectId,
@@ -37,7 +55,7 @@ router.post('/:projectId/:stageKey/advance', async (req, res) => {
   }
 })
 
-router.post('/:projectId/:stageKey/abnormal', async (req, res) => {
+router.post('/:projectId/:stageKey/abnormal', checkProjectOwnership, async (req, res) => {
   try {
     const node = await callTool('mark_node_abnormal', {
       projectId: req.params.projectId,
