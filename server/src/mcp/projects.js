@@ -1,26 +1,31 @@
 const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
 
 async function createProject(params) {
-  // 校验项目名称唯一性
   const existing = await listRecords('projects')
   if (existing.some(p => p.fields?.name === params.name)) {
     throw new Error('项目名称已存在')
   }
 
+  // Auto-generate project number by company
+  const company = params.company || 'ZT'
+  const prefix = company === 'GOFO' ? 'GFCG' : 'CG'
+  const year = new Date().getFullYear()
+  const yearProjects = existing.filter(p => p.fields?.no?.startsWith(`${prefix}-${year}`))
+  const seq = String(yearProjects.length + 1).padStart(3, '0')
+  const projectNo = `${prefix}-${year}-${seq}`
+
   const fields = {
     name: params.name,
-    no: params.no || `CG-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
-    category: params.category,
+    no: projectNo,
+    company: company,
+    bu: params.bu || '',
+    application_no: params.applicationNo || '',
     owner: params.owner,
-    department: params.department || '',
     budget: Number(params.budget) || 0,
-    plan_start: params.planStart || '',
-    plan_end: params.planEnd || '',
+    task_type: params.taskType || '',
     current_stage: 'requirement',
-    status: '正常',
+    status: '进行中',
     remark: params.remark || '',
-    risk: '',
-    suppliers: '[]',
   }
   return await createRecord('projects', fields)
 }
@@ -29,14 +34,13 @@ async function updateProject(params) {
   const { projectId, ...rest } = params
   const fields = {}
   if (rest.name) fields.name = rest.name
+  if (rest.bu !== undefined) fields.bu = rest.bu
+  if (rest.applicationNo !== undefined) fields.application_no = rest.applicationNo
   if (rest.owner) fields.owner = rest.owner
-  if (rest.department) fields.department = rest.department
   if (rest.budget !== undefined) fields.budget = Number(rest.budget)
-  if (rest.planStart) fields.plan_start = rest.planStart
-  if (rest.planEnd) fields.plan_end = rest.planEnd
-  if (rest.remark !== undefined) fields.remark = rest.remark
+  if (rest.taskType !== undefined) fields.task_type = rest.taskType
   if (rest.status) fields.status = rest.status
-  if (rest.risk !== undefined) fields.risk = rest.risk
+  if (rest.remark !== undefined) fields.remark = rest.remark
   return await updateRecord('projects', projectId, fields)
 }
 

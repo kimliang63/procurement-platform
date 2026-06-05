@@ -5,6 +5,8 @@ const projectsRouter = require('./routes/projects')
 const nodesRouter = require('./routes/nodes')
 const issuesRouter = require('./routes/issues')
 const authRouter = require('./routes/auth')
+const groupsRouter = require('./routes/groups')
+const weeklyRouter = require('./routes/weekly')
 const { handleMessage, handleCardAction } = require('./bot')
 const { callTool } = require('./mcp')
 const client = require('./feishu/client')
@@ -28,6 +30,8 @@ app.use('/api/projects', projectsRouter)
 app.use('/api/nodes', nodesRouter)
 app.use('/api/issues', issuesRouter)
 app.use('/api/auth', authRouter)
+app.use('/api/groups', groupsRouter)
+app.use('/api/weekly', weeklyRouter)
 
 // Stats API
 app.get('/api/stats', async (req, res) => {
@@ -36,9 +40,10 @@ app.get('/api/stats', async (req, res) => {
     const issues = await callTool('list_issues')
 
     const stats = {
-      doing: projects.filter(p => p.fields?.status === '正常').length,
-      done: projects.filter(p => p.fields?.status === '已完成').length,
-      problem: projects.filter(p => p.fields?.status === '异常').length,
+      doing: projects.filter(p => p.fields?.status === '进行中').length,
+      done: projects.filter(p => p.fields?.status === '项目完成').length,
+      paused: projects.filter(p => p.fields?.status === '项目暂停').length,
+      cancelled: projects.filter(p => p.fields?.status === '项目取消').length,
       total: projects.length,
       issues_open: issues.filter(i => i.fields?.status === 'open').length,
       issues_in_progress: issues.filter(i => i.fields?.status === 'in_progress').length,

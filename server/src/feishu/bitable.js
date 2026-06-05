@@ -7,6 +7,8 @@ const TABLE_IDS = {
   nodes: process.env.BITABLE_NODES_TABLE_ID,
   issues: process.env.BITABLE_ISSUES_TABLE_ID,
   users: process.env.BITABLE_USERS_TABLE_ID,
+  groups: process.env.BITABLE_GROUPS_TABLE_ID,
+  weekly_config: process.env.BITABLE_WEEKLY_CONFIG_TABLE_ID,
 }
 
 async function listRecords(tableKey, filter = {}) {
