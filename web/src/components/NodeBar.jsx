@@ -1,27 +1,36 @@
 import React from 'react'
 import { Tooltip } from 'antd'
-import { STAGE_KEYS, STAGE_MAP as STAGE_LABELS, STAGE_COLORS } from '../constants/stages'
+import { STAGE_KEYS, STAGE_MAP as STAGE_LABELS, NODE_STATUS_COLORS } from '../constants/stages'
 
-export default function NodeBar({ currentStage, completed = 0, total = 13 }) {
+export default function NodeBar({ nodes = [], currentStage }) {
   const currentOrder = STAGE_KEYS.indexOf(currentStage) + 1
+  const hasNodes = nodes.length > 0
 
   return (
     <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
       {STAGE_KEYS.map((key, i) => {
-        const order = i + 1
-        const isCompleted = order < currentOrder
-        const isCurrent = order === currentOrder
+        let status
+        if (hasNodes) {
+          const node = nodes.find(n => n.fields?.stage_key === key)
+          status = node?.fields?.status || 'pending'
+        } else {
+          // Backward-compatible: derive status from currentStage
+          const order = i + 1
+          if (currentOrder > 0 && order < currentOrder) status = 'completed'
+          else if (currentOrder > 0 && order === currentOrder) status = 'in_progress'
+          else status = 'pending'
+        }
+        const color = NODE_STATUS_COLORS[status] || NODE_STATUS_COLORS.pending
         return (
-          <Tooltip key={key} title={STAGE_LABELS[key]}>
+          <Tooltip key={key} title={`${STAGE_LABELS[key]}: ${status}`}>
             <div style={{
               flex: 1, height: 4, borderRadius: 2,
-              background: isCompleted ? '#52c41a' : isCurrent ? STAGE_COLORS[key] : '#e8e8e8',
-              opacity: isCompleted || isCurrent ? 1 : 0.3,
+              background: color,
+              opacity: status === 'pending' ? 0.3 : 1,
             }} />
           </Tooltip>
         )
       })}
-      <span style={{ fontSize: 10, color: '#8c8c8c', marginLeft: 4 }}>{completed}/{total}</span>
     </div>
   )
 }

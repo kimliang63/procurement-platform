@@ -5,38 +5,59 @@ const STAGE_MAP = {
   requirement: { label: '需求确认', order: 1 },
   supplier_dev: { label: '供应商开发', order: 2 },
   tech_exchange: { label: '技术交流', order: 3 },
-  bid_approval: { label: '招标审批', order: 4 },
-  bid_issue: { label: '发标', order: 5 },
-  bid_qa: { label: '招标答疑', order: 6 },
-  bid_return: { label: '供应商回标', order: 7 },
-  bid_open: { label: '开标', order: 8 },
-  bid_determine: { label: '定标', order: 9 },
-  bid_notify: { label: '中标通知', order: 10 },
-  contract: { label: '合同签订', order: 11 },
-  production: { label: '生产', order: 12 },
-  shipping: { label: '海运', order: 13 },
+  sampling: { label: '打样', order: 4 },
+  bid_approval: { label: '招标方案审批', order: 5 },
+  bid_issue: { label: '发标', order: 6 },
+  bid_qa: { label: '答疑', order: 7 },
+  bid_return: { label: '供应商回标', order: 8 },
+  bid_open: { label: '开标', order: 9 },
+  bid_determine: { label: '定标', order: 10 },
+  bid_notify: { label: '中标/未中标通知', order: 11 },
+  contract_approval: { label: '合同审批', order: 12 },
+  production: { label: '生产', order: 13 },
+  shipping: { label: '运输', order: 14 },
+  acceptance: { label: '验收', order: 15 },
 }
 
 const STAGE_KEYS = Object.keys(STAGE_MAP)
 
 function computeNodeStatus(node) {
   const f = node.fields || {}
+  // Red: blocked
   if (f.abnormal_reason) return 'blocked'
 
   const today = new Date().toISOString().split('T')[0]
   const planStart = f.plan_start || ''
-  const planEnd = f.plan_end || f.plan_date || ''
+  const planEnd = f.plan_end || ''
   const actualDate = f.actual_date || ''
 
+  // Green: completed
   if (actualDate) return 'completed'
-  if (!planStart && !planEnd) {
-    const stageInfo = STAGE_MAP[f.stage_key]
-    return stageInfo?.order === 1 ? 'in_progress' : 'pending'
-  }
+
+  // No dates → pending (gray)
+  if (!planStart && !planEnd) return 'pending'
+
+  // Blue: in_progress (current node)
+  if (planStart && today >= planStart && (!planEnd || today <= planEnd)) return 'in_progress'
+
+  // Before start → pending (gray)
   if (planStart && today < planStart) return 'pending'
-  if (planStart && planEnd && today >= planStart && today <= planEnd) return 'in_progress'
+
+  // After end, no actual date → overdue (red)
   if (planEnd && today > planEnd) return 'overdue'
+
   return 'pending'
+}
+
+async function checkAndAutoComplete(projectId) {
+  const nodes = await listProjectNodes({ projectId })
+  const allCompleted = nodes.every(n => n.fields?.actual_date)
+  if (allCompleted) {
+    const project = await require('./projects').getProject({ projectId })
+    if (project?.fields?.status !== '项目完成') {
+      await require('./projects').updateProject({ projectId, status: '项目完成' })
+    }
+  }
 }
 
 async function initProjectNodes(params) {
@@ -48,7 +69,6 @@ async function initProjectNodes(params) {
       status: info.order === 1 ? 'in_progress' : 'pending',
       plan_start: '',
       plan_end: '',
-      plan_date: '',
       actual_date: '',
       note: '',
     }
@@ -74,9 +94,14 @@ async function advanceNode(params) {
   if (!node.record_id) throw new Error('节点数据异常: 缺少 record_id')
 
   const finalActualDate = actualDate || new Date().toISOString().split('T')[0]
-  return await updateRecord('nodes', node.record_id, {
+  const result = await updateRecord('nodes', node.record_id, {
     actual_date: finalActualDate,
   })
+
+  // Auto-complete project if all nodes done
+  await checkAndAutoComplete(projectId)
+
+  return result
 }
 
 async function updateNode(params) {
@@ -130,4 +155,4 @@ async function listProjectNodes(params) {
     .map(n => ({ ...n, fields: { ...n.fields, status: computeNodeStatus(n) } }))
 }
 
-module.exports = { initProjectNodes, advanceNode, updateNode, markNodeAbnormal, listProjectNodes, computeNodeStatus, STAGE_MAP, STAGE_KEYS }
+module.exports = { initProjectNodes, advanceNode, updateNode, markNodeAbnormal, listProjectNodes, computeNodeStatus, checkAndAutoComplete, STAGE_MAP, STAGE_KEYS }
