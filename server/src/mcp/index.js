@@ -2,6 +2,7 @@ const projects = require('./projects')
 const nodes = require('./nodes')
 const issues = require('./issues')
 const rules = require('./rules')
+const groups = require('./groups')
 
 const TOOLS = {
   create_project: projects.createProject,
@@ -18,6 +19,10 @@ const TOOLS = {
   update_issue: issues.updateIssue,
   delete_issue: issues.deleteIssue,
   list_issues: issues.listIssues,
+  create_group: groups.createGroup,
+  list_groups: groups.listGroups,
+  get_group: groups.getGroup,
+  delete_group: groups.deleteGroup,
 }
 
 async function callTool(toolName, params) {

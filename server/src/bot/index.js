@@ -1,5 +1,6 @@
 const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
+const { getGroupBinding, bindGroup, isProjectOwner } = require('./group')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
 const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed } = require('./cards')
@@ -51,7 +52,17 @@ async function handleMessage(event) {
   if (!text) return null
 
   const senderId = event.sender?.sender_id?.open_id || 'unknown'
+  const chatId = event.message?.chat_id
   console.log('Bot received:', text, 'from:', senderId)
+
+  // Check for group binding command
+  if (text.includes('绑定')) {
+    const match = text.match(/绑定\s+(.+)/)
+    if (match && chatId) {
+      const result = await bindGroup(chatId, match[1], senderId)
+      return { text: result.message || `已绑定项目：${result.project.fields?.name}` }
+    }
+  }
 
   // 使用 LLM 理解意图（内部维护会话上下文）
   const result = await understandIntent(text, senderId)
@@ -274,7 +285,7 @@ async function sendProcessedCard(chatId, headerTitle, color, params, statusText)
   })
 }
 
-async function handleCardAction(action, chatId) {
+async function handleCardAction(action, chatId, senderId) {
   const key = actionKey(action)
 
   // 防重复点击
@@ -285,6 +296,16 @@ async function handleCardAction(action, chatId) {
   processingActions.add(key)
 
   try {
+    // Permission check for node operations
+    if (action.action === 'confirm_node' || action.action === 'mark_abnormal') {
+      if (senderId && action.project_id) {
+        const isOwner = await isProjectOwner(action.project_id, senderId)
+        if (!isOwner) {
+          return { toast: { content: '仅负责人可操作', type: 'warning' } }
+        }
+      }
+    }
+
     if (action.action === 'confirm_project') {
       const params = action.params
       // 立即发送"处理中"卡片（无按钮），替换原卡片

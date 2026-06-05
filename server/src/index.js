@@ -95,10 +95,11 @@ app.post('/webhook/bot', async (req, res) => {
   if (header?.event_type === 'card.action.trigger') {
     const action = event?.action
     const chatId = event?.context?.open_chat_id
-    console.log('Card action:', JSON.stringify(action), 'chat:', chatId)
+    const operatorId = event?.operator?.open_id
+    console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
-      const result = await handleCardAction(action.value, chatId)
+      const result = await handleCardAction(action.value, chatId, operatorId)
 
       if (result?.card && chatId) {
         try {
@@ -197,11 +198,12 @@ app.post('/webhook/card', async (req, res) => {
 
     const action = event?.action
     const chatId = event?.context?.open_chat_id
-    console.log('Card action:', JSON.stringify(action), 'chat:', chatId)
+    const operatorId = event?.operator?.open_id
+    console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
       try {
-        const result = await handleCardAction(action.value, chatId)
+        const result = await handleCardAction(action.value, chatId, operatorId)
         if (result?.toast) {
           return res.json({ toast: result.toast })
         }
