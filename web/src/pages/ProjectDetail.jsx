@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
+import PermissionGuard from '../components/PermissionGuard'
 import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
@@ -217,9 +218,11 @@ export default function ProjectDetail() {
         extra={
           <Space>
             <Button icon={<EditOutlined />} onClick={handleEditProject}>编辑项目</Button>
-            <Popconfirm title="确认删除该项目？所有节点和问题将一并删除" onConfirm={handleDeleteProject}>
-              <Button danger icon={<DeleteOutlined />}>删除项目</Button>
-            </Popconfirm>
+            <PermissionGuard requiredRole="admin">
+              <Popconfirm title="确认删除该项目？所有节点和问题将一并删除" onConfirm={handleDeleteProject}>
+                <Button danger icon={<DeleteOutlined />}>删除项目</Button>
+              </Popconfirm>
+            </PermissionGuard>
           </Space>
         }
       >
