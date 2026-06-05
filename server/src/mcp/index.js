@@ -1,6 +1,7 @@
 const projects = require('./projects')
 const nodes = require('./nodes')
 const issues = require('./issues')
+const rules = require('./rules')
 
 const TOOLS = {
   create_project: projects.createProject,
@@ -25,4 +26,4 @@ async function callTool(toolName, params) {
   return await fn(params)
 }
 
-module.exports = { callTool, TOOLS, STAGE_MAP: nodes.STAGE_MAP, STAGE_KEYS: nodes.STAGE_KEYS }
+module.exports = { callTool, TOOLS, STAGE_MAP: nodes.STAGE_MAP, STAGE_KEYS: nodes.STAGE_KEYS, ...rules }
