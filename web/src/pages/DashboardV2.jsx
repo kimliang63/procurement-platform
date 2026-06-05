@@ -29,8 +29,9 @@ export default function DashboardV2() {
   const statCards = [
     { title: '项目总数', value: basic.total, color: '#8c8c8c' },
     { title: '进行中', value: basic.doing, color: '#1677ff' },
-    { title: '已定标', value: basic.bidDetermined, color: '#52c41a' },
-    { title: '100万以上', value: basic.over100w, color: '#722ed1' },
+    { title: '已完成', value: basic.completed, color: '#52c41a' },
+    { title: '已定标', value: basic.bidDetermined, color: '#722ed1' },
+    { title: '100万以上', value: basic.over100w, color: '#fa541c' },
   ]
 
   // BU table data
@@ -59,7 +60,7 @@ export default function DashboardV2() {
       {/* Basic Stats */}
       <Row gutter={16} style={{ marginBottom: 20 }}>
         {statCards.map((s, i) => (
-          <Col span={6} key={i}>
+          <Col xs={12} sm={8} md={4} key={i}>
             <Card>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
