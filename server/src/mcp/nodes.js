@@ -34,8 +34,11 @@ function computeNodeStatus(node) {
   // Green: completed
   if (actualDate) return 'completed'
 
-  // No dates → pending (gray)
-  if (!planStart && !planEnd) return 'pending'
+  // No dates → check if it's the first stage (should be in_progress)
+  if (!planStart && !planEnd) {
+    const stageInfo = STAGE_MAP[f.stage_key]
+    return stageInfo?.order === 1 ? 'in_progress' : 'pending'
+  }
 
   // Blue: in_progress (current node)
   if (planStart && today >= planStart && (!planEnd || today <= planEnd)) return 'in_progress'
@@ -98,8 +101,12 @@ async function advanceNode(params) {
     actual_date: finalActualDate,
   })
 
-  // Auto-complete project if all nodes done
-  await checkAndAutoComplete(projectId)
+  // Auto-complete project if all nodes done (non-blocking)
+  try {
+    await checkAndAutoComplete(projectId)
+  } catch (e) {
+    console.error('Auto-complete check failed:', e.message)
+  }
 
   return result
 }
@@ -120,7 +127,6 @@ async function updateNode(params) {
   if (rest.assignee) fields.assignee = rest.assignee
   if (rest.plan_start !== undefined) fields.plan_start = rest.plan_start
   if (rest.plan_end !== undefined) fields.plan_end = rest.plan_end
-  if (rest.plan_date !== undefined) fields.plan_date = rest.plan_date
   if (rest.actual_date !== undefined) fields.actual_date = rest.actual_date
   if (rest.note !== undefined) fields.note = rest.note
   if (rest.abnormal_reason !== undefined) fields.abnormal_reason = rest.abnormal_reason
