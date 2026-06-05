@@ -49,4 +49,6 @@ export const deleteIssue = (id) => api.delete(`/issues/${id}`)
 
 export const getUsers = () => api.get('/auth/users')
 
+export const getStats = () => api.get('/stats')
+
 export default api

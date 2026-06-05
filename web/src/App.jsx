@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Button, Card, Result } from 'antd'
 import Layout from './components/Layout'
-import Dashboard from './pages/Dashboard'
+import DashboardV2 from './pages/DashboardV2'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
 import IssueTracker from './pages/IssueTracker'
@@ -92,7 +92,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<Dashboard />} />
+          <Route index element={<DashboardV2 />} />
           <Route path="projects" element={<ProjectList />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="issues" element={<IssueTracker />} />
