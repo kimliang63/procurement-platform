@@ -1,6 +1,7 @@
 const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
 const { getGroupBinding, bindGroup, isProjectOwner } = require('./group')
+const { generateGroupWeeklyReport, generateAdminWeeklyReport } = require('./weekly')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
 const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed } = require('./cards')
@@ -62,6 +63,19 @@ async function handleMessage(event) {
       const result = await bindGroup(chatId, match[1], senderId)
       return { text: result.message || `已绑定项目：${result.project.fields?.name}` }
     }
+  }
+
+  // Weekly report command
+  if (text.includes('周报') || text.includes('weekly')) {
+    if (text.includes('管理') || text.includes('admin')) {
+      const report = await generateAdminWeeklyReport()
+      return { text: report }
+    }
+    if (chatId) {
+      const report = await generateGroupWeeklyReport(chatId)
+      return { text: report || '未绑定项目，无法生成周报' }
+    }
+    return { text: '请在群聊中使用周报功能，或使用"管理周报"查看全局周报' }
   }
 
   // 使用 LLM 理解意图（内部维护会话上下文）

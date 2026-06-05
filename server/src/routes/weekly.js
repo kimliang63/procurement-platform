@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { listRecords, createRecord } = require('../feishu/bitable')
+const { sendWeeklyReports } = require('../bot/weekly')
 
 router.get('/', async (req, res) => {
   try {
@@ -23,6 +24,15 @@ router.post('/', async (req, res) => {
       updated_at: new Date().toISOString(),
     })
     res.json({ data: config })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.post('/send', async (req, res) => {
+  try {
+    const results = await sendWeeklyReports()
+    res.json({ success: true, data: results })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
