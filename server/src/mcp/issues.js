@@ -27,6 +27,7 @@ async function listIssues(params = {}) {
   if (params.projectId) issues = issues.filter(i => i.fields.project_id === params.projectId)
   if (params.status) issues = issues.filter(i => i.fields.status === params.status)
   if (params.priority) issues = issues.filter(i => i.fields.priority === params.priority)
+  if (params.owner) issues = issues.filter(i => i.fields.assignee === params.owner)
   return issues
 }
 

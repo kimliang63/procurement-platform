@@ -1,8 +1,9 @@
 const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
+const { filterByOwner } = require('../middleware/auth')
 
-router.get('/', async (req, res) => {
+router.get('/', filterByOwner, async (req, res) => {
   try {
     const projects = await callTool('list_projects', req.query)
     res.json({ data: projects })

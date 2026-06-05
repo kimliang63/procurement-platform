@@ -10,6 +10,7 @@ const weeklyRouter = require('./routes/weekly')
 const { handleMessage, handleCardAction } = require('./bot')
 const { callTool } = require('./mcp')
 const client = require('./feishu/client')
+const { extractUser } = require('./middleware/auth')
 
 const app = express()
 app.use(cors({
@@ -26,10 +27,12 @@ const PORT = process.env.PORT || 4000
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
+app.use('/api/auth', authRouter)
+// Auth middleware for all API routes (except health and auth)
+app.use('/api', extractUser)
 app.use('/api/projects', projectsRouter)
 app.use('/api/nodes', nodesRouter)
 app.use('/api/issues', issuesRouter)
-app.use('/api/auth', authRouter)
 app.use('/api/groups', groupsRouter)
 app.use('/api/weekly', weeklyRouter)
 

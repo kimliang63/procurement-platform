@@ -1,13 +1,15 @@
 const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
+const { filterByOwner } = require('../middleware/auth')
 
-router.get('/', async (req, res) => {
+router.get('/', filterByOwner, async (req, res) => {
   try {
     const issues = await callTool('list_issues', {
       projectId: req.query.projectId,
       status: req.query.status,
       priority: req.query.priority,
+      owner: req.query.owner,
     })
     res.json({ data: issues })
   } catch (e) {

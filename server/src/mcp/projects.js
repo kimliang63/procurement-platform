@@ -69,7 +69,11 @@ async function getProject(params) {
 }
 
 async function listProjects(params = {}) {
-  return await listRecords('projects', params)
+  let projects = await listRecords('projects', params)
+  if (params.owner) {
+    projects = projects.filter(p => p.fields?.owner === params.owner)
+  }
+  return projects
 }
 
 module.exports = { createProject, updateProject, deleteProject, getProject, listProjects }

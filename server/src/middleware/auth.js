@@ -1,0 +1,57 @@
+const client = require('../feishu/client')
+const { listRecords } = require('../feishu/bitable')
+
+// Extract user from token and attach to req.user
+async function extractUser(req, res, next) {
+  const authHeader = req.headers.authorization
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: '未登录' })
+  }
+
+  const token = authHeader.slice(7)
+  try {
+    const userRes = await client.authen.userInfo.get({
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const openId = userRes.data?.open_id
+    if (!openId) {
+      return res.status(401).json({ error: 'token无效' })
+    }
+
+    // Look up user role from bitable
+    const users = await listRecords('users')
+    const user = users.find(u => u.fields.feishu_open_id === openId)
+    if (!user) {
+      return res.status(401).json({ error: '用户不存在' })
+    }
+
+    req.user = {
+      open_id: user.fields.feishu_open_id,
+      name: user.fields.name,
+      role: user.fields.role || 'member',
+      record_id: user.record_id,
+    }
+    next()
+  } catch (e) {
+    return res.status(401).json({ error: 'token已过期' })
+  }
+}
+
+// Check if user is admin
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: '需要管理员权限' })
+  }
+  next()
+}
+
+// Filter by owner: admin sees all, buyer only sees own
+function filterByOwner(req, res, next) {
+  if (req.user?.role === 'admin') {
+    return next()
+  }
+  req.query.owner = req.user?.name
+  next()
+}
+
+module.exports = { extractUser, requireAdmin, filterByOwner }
