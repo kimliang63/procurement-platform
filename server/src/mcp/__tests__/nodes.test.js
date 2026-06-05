@@ -1,10 +1,10 @@
 const { STAGE_MAP, STAGE_KEYS } = require('../nodes')
 
 describe('STAGE_MAP', () => {
-  test('has 13 stages in correct order', () => {
-    expect(STAGE_KEYS).toHaveLength(13)
+  test('has 15 stages in correct order', () => {
+    expect(STAGE_KEYS).toHaveLength(15)
     expect(STAGE_KEYS[0]).toBe('requirement')
-    expect(STAGE_KEYS[12]).toBe('shipping')
+    expect(STAGE_KEYS[14]).toBe('acceptance')
   })
 
   test('each stage has label and order', () => {
@@ -16,9 +16,9 @@ describe('STAGE_MAP', () => {
     }
   })
 
-  test('orders are sequential from 1 to 13', () => {
+  test('orders are sequential from 1 to 15', () => {
     const orders = Object.values(STAGE_MAP).map(s => s.order).sort((a, b) => a - b)
-    expect(orders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    expect(orders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
   })
 
   test('all labels are Chinese', () => {
