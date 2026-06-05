@@ -26,4 +26,6 @@ async function callTool(toolName, params) {
   return await fn(params)
 }
 
-module.exports = { callTool, TOOLS, STAGE_MAP: nodes.STAGE_MAP, STAGE_KEYS: nodes.STAGE_KEYS, ...rules }
+const { getMandatoryNodes, isNodeMandatory, getNodeValidation, TASK_TYPE_RULES } = rules
+
+module.exports = { callTool, TOOLS, STAGE_MAP: nodes.STAGE_MAP, STAGE_KEYS: nodes.STAGE_KEYS, getMandatoryNodes, isNodeMandatory, getNodeValidation, TASK_TYPE_RULES }

@@ -27,6 +27,10 @@ function isNodeMandatory(taskType, stageKey) {
 }
 
 function getNodeValidation(taskType, stageKey, nodeData) {
+  if (!nodeData || typeof nodeData !== 'object') {
+    return { valid: false, message: '节点数据无效' }
+  }
+
   const mandatory = getMandatoryNodes(taskType)
   const isMandatory = mandatory.includes(stageKey)
 
@@ -41,4 +45,20 @@ function getNodeValidation(taskType, stageKey, nodeData) {
   return { valid: true }
 }
 
-module.exports = { getMandatoryNodes, isNodeMandatory, getNodeValidation, TASK_TYPE_RULES, FAST_RULE_MANDATORY, BIDDING_RULE_MANDATORY }
+// Stage keys from nodes.js STAGE_MAP (avoids circular dependency)
+const VALID_STAGE_KEYS = [
+  'requirement', 'supplier_dev', 'tech_exchange', 'sampling',
+  'bid_approval', 'bid_issue', 'bid_qa', 'bid_return', 'bid_open',
+  'bid_determine', 'bid_notify', 'contract_approval', 'production',
+  'shipping', 'acceptance',
+]
+
+// Validate at module load
+const allKeys = [...FAST_RULE_MANDATORY, ...BIDDING_RULE_MANDATORY]
+for (const key of allKeys) {
+  if (!VALID_STAGE_KEYS.includes(key)) {
+    throw new Error(`Unknown stage key in rules: ${key}`)
+  }
+}
+
+module.exports = { getMandatoryNodes, isNodeMandatory, getNodeValidation, TASK_TYPE_RULES }
