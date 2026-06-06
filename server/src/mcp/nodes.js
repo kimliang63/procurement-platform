@@ -1,5 +1,6 @@
 const { listRecords, getRecord, createRecord, updateRecord, TABLE_IDS } = require('../feishu/bitable')
 const client = require('../feishu/client')
+const { isNodeMandatory, getNodeValidation } = require('./rules')
 
 const STAGE_MAP = {
   requirement: { label: '需求确认', order: 1 },
@@ -89,6 +90,13 @@ async function advanceNode(params) {
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
+  // Business rule: check if node is mandatory for this project type
+  const project = await require('./projects').getProject({ projectId })
+  const taskType = project?.fields?.task_type
+  if (taskType && !isNodeMandatory(taskType, stageKey)) {
+    throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于任务类型"${taskType}"，无法推进`)
+  }
+
   const nodes = await listRecords('nodes', {
     filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
   })
@@ -115,6 +123,16 @@ async function updateNode(params) {
   const { projectId, stageKey, ...rest } = params
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
+
+  // Business rule: validate actual_date on mandatory nodes
+  if (rest.actual_date) {
+    const project = await require('./projects').getProject({ projectId })
+    const taskType = project?.fields?.task_type
+    if (taskType) {
+      const validation = getNodeValidation(taskType, stageKey, { actual_date: rest.actual_date })
+      if (!validation.valid) throw new Error(validation.message)
+    }
+  }
 
   const nodes = await listRecords('nodes', {
     filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`

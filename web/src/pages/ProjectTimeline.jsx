@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { Card, Input, Select, Space, Tag, Button, Modal, Form, InputNumber, message } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { getProjects, createProject, getUsers } from '../api'
-import { STAGE_MAP, NODE_STATUS_COLORS } from '../constants/stages'
+import { getProjects, createProject, getUsers, getProjectNodes } from '../api'
+import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS } from '../constants/stages'
 
 export default function ProjectTimeline() {
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
+  const [projectNodes, setProjectNodes] = useState({})
   const [loading, setLoading] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [filterOwner, setFilterOwner] = useState(null)
@@ -19,7 +20,20 @@ export default function ProjectTimeline() {
     setLoading(true)
     try {
       const res = await getProjects()
-      setProjects(res.data?.data || [])
+      const list = res.data?.data || []
+      setProjects(list)
+      // Fetch nodes for each project in parallel
+      const nodeResults = await Promise.allSettled(
+        list.map(p => getProjectNodes(p.record_id).then(r => [p.record_id, r.data?.data || []]))
+      )
+      const nodesMap = {}
+      nodeResults.forEach(r => {
+        if (r.status === 'fulfilled') {
+          const [id, nodes] = r.value
+          nodesMap[id] = nodes
+        }
+      })
+      setProjectNodes(nodesMap)
     } catch {}
     setLoading(false)
   }
@@ -97,19 +111,24 @@ export default function ProjectTimeline() {
           </div>
           {/* Timeline bar */}
           <div style={{ display: 'flex', gap: 2 }}>
-            {Object.entries(STAGE_MAP).map(([key, label]) => (
-              <div
-                key={key}
-                style={{
-                  flex: 1,
-                  height: 8,
-                  borderRadius: 4,
-                  background: NODE_STATUS_COLORS.pending,
-                  opacity: 0.3,
-                }}
-                title={label}
-              />
-            ))}
+            {STAGE_KEYS.map(key => {
+              const nodes = projectNodes[project.record_id] || []
+              const node = nodes.find(n => n.fields?.stage_key === key)
+              const status = node?.fields?.status || 'pending'
+              return (
+                <div
+                  key={key}
+                  style={{
+                    flex: 1,
+                    height: 8,
+                    borderRadius: 4,
+                    background: NODE_STATUS_COLORS[status] || NODE_STATUS_COLORS.pending,
+                    opacity: status === 'pending' ? 0.3 : 1,
+                  }}
+                  title={`${STAGE_MAP[key]}: ${status}`}
+                />
+              )
+            })}
           </div>
         </Card>
       ))}
