@@ -185,7 +185,7 @@ async function handleMessage(event) {
   // 执行其他操作
   if (result.intent && result.intent !== 'create_project') {
     // 需要 projectId 的操作
-    const needsProjectId = ['get_project', 'advance_node', 'update_node', 'mark_node_abnormal', 'list_project_nodes', 'create_issue', 'update_issue', 'list_issues'].includes(result.intent)
+    const needsProjectId = ['get_project', 'update_project', 'advance_node', 'update_node', 'mark_node_abnormal', 'list_project_nodes', 'create_issue', 'update_issue', 'list_issues'].includes(result.intent)
 
     if (needsProjectId && !result.params?.projectId) {
       // 优先从 session 获取

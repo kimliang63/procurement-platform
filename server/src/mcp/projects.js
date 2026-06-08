@@ -45,7 +45,17 @@ async function createProject(params) {
 }
 
 async function updateProject(params) {
-  const { projectId, ...rest } = params
+  let { projectId, ...rest } = params
+
+  // 兜底：如果没有 projectId，按名称查找
+  if (!projectId && rest.projectName) {
+    const all = await listRecords('projects')
+    const match = all.find(p => p.fields?.name === rest.projectName || p.fields?.name?.includes(rest.projectName))
+    if (match) projectId = match.record_id
+  }
+
+  if (!projectId) throw new Error('缺少 projectId')
+
   const fields = {}
   if (rest.name) fields.name = rest.name
   if (rest.bu !== undefined) fields.bu = rest.bu
