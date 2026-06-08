@@ -151,11 +151,18 @@ async function handleMessage(event) {
       return { text: dateError }
     }
 
-    // 用户确认 → 执行创建（严格匹配）
+    // 信息完整 → 始终弹确认卡片（不依赖 LLM 的 message）
     const trimmed = text.trim()
     const confirmWords = ['确认', '确定', '是的', '好的', '可以', '没问题', '行']
     const singleCharConfirm = ['是', '好']
     const isConfirm = confirmWords.includes(trimmed) || (singleCharConfirm.includes(trimmed) && trimmed.length <= 2)
+
+    // 非确认词 → 弹卡片让用户点按钮
+    if (!isConfirm) {
+      return { card: buildProjectConfirmCard(params) }
+    }
+
+    // 用户确认 → 执行创建
     if (isConfirm) {
       try {
         console.log('[Bot] Creating project with params:', JSON.stringify(params))
@@ -176,9 +183,6 @@ async function handleMessage(event) {
         return { text: `操作失败：${e.message}` }
       }
     }
-
-    // 信息完整但未确认 → 发送确认卡片
-    return { card: buildProjectConfirmCard(params) }
   }
 
   // 用户取消（严格匹配）
