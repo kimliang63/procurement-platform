@@ -173,7 +173,7 @@ async function callLlm(messages, apiKey, model, baseUrl) {
   return data.choices?.[0]?.message?.content || '{}'
 }
 
-async function understandIntent(userMessage, senderId = 'default') {
+async function understandIntent(userMessage, senderId = 'default', senderName = null) {
   const apiKey = process.env.LLM_API_KEY
   const model = process.env.LLM_MODEL || 'deepseek-chat'
   const baseUrl = process.env.LLM_BASE_URL || 'https://api.deepseek.com'
@@ -201,6 +201,9 @@ async function understandIntent(userMessage, senderId = 'default') {
 
   // 构建消息，包含会话状态提示
   let systemMsg = SYSTEM_PROMPT
+  if (senderName) {
+    systemMsg += `\n\n## 当前用户\n当前发消息的用户姓名是"${senderName}"。创建项目时负责人默认填此姓名，不要编造或追问。`
+  }
   if (session.pendingAction) {
     systemMsg += `\n\n## 当前会话状态\n用户正在${session.pendingAction.intent === 'create_project' ? '创建项目' : '执行操作'}，已收集的参数：${JSON.stringify(session.pendingAction.params)}`
   }

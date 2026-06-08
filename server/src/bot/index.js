@@ -2,10 +2,23 @@ const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
 const { getGroupBinding, bindGroup, isProjectOwner } = require('./group')
 const { generateGroupWeeklyReport, generateAdminWeeklyReport } = require('./weekly')
+const { listRecords } = require('../feishu/bitable')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
 const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed } = require('./cards')
 const client = require('../feishu/client')
+
+// 根据 open_id 从 users 表查找用户姓名
+async function resolveUserName(openId) {
+  if (!openId) return null
+  try {
+    const users = await listRecords('users')
+    const user = users.find(u => u.fields?.feishu_open_id === openId)
+    return user?.fields?.name || null
+  } catch {
+    return null
+  }
+}
 
 // LLM 可能返回 camelCase 或 snake_case，统一映射
 const INTENT_MAP = {
@@ -56,6 +69,9 @@ async function handleMessage(event) {
   const chatId = event.message?.chat_id
   console.log('Bot received:', text, 'from:', senderId)
 
+  // 解析发送者真实姓名
+  const senderName = await resolveUserName(senderId)
+
   // Check for group binding command
   if (text.includes('绑定')) {
     const match = text.match(/绑定\s+(.+)/)
@@ -79,7 +95,7 @@ async function handleMessage(event) {
   }
 
   // 使用 LLM 理解意图（内部维护会话上下文）
-  const result = await understandIntent(text, senderId)
+  const result = await understandIntent(text, senderId, senderName)
   console.log('LLM result:', JSON.stringify(result, null, 2))
 
   // 兼容 intent 命名
@@ -107,8 +123,8 @@ async function handleMessage(event) {
     if (!params.planStart) missing.push('计划开始日期')
     if (!params.planEnd) missing.push('计划结束日期')
 
-    // 负责人默认为梁景悦
-    if (!params.owner) params.owner = '梁景悦'
+    // 负责人始终使用当前发送者的真实姓名
+    if (senderName) params.owner = senderName
 
     // 信息不完整，返回追问消息
     if (missing.length > 0) {
