@@ -204,4 +204,101 @@ function buildIssueAlertCard(project, issue) {
   }
 }
 
-module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed }
+function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
+  const now = new Date()
+  const weekStr = `${now.getMonth() + 1}月${now.getDate()}日周报`
+
+  const projectLines = activeProjects.map(p => {
+    const nodes = projectNodeMap[p.record_id] || []
+    const completed = nodes.filter(n => n.fields?.actual_date).length
+    const current = nodes.find(n => n.fields?.status === 'in_progress')
+    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+    return `**${p.fields?.name}**（${p.fields?.no}）\n状态：${p.fields?.status} | 阶段：${currentLabel} | 进度：${completed}/${nodes.length}`
+  })
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `采购项目周报 · ${weekStr}` },
+      template: 'blue',
+    },
+    elements: [
+      {
+        tag: 'div',
+        fields: [
+          { is_short: true, text: { tag: 'lark_md', content: `**本周活跃项目**\n${activeProjects.length} 个` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**全部项目**\n${totalProjects} 个` } },
+        ],
+      },
+      { tag: 'hr' },
+      ...(activeProjects.length > 0
+        ? projectLines.map(line => ({ tag: 'div', text: { tag: 'lark_md', content: line } }))
+        : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无项目变动。' } }]
+      ),
+    ],
+  }
+}
+
+function buildGroupWeeklyCard(project, nodes, recentNodes) {
+  const completed = nodes.filter(n => n.fields?.actual_date).length
+  const total = nodes.length
+  const current = nodes.find(n => n.fields?.status === 'in_progress')
+  const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+  const now = new Date()
+  const weekStr = `${now.getMonth() + 1}月${now.getDate()}日`
+
+  const changeLines = recentNodes.map(n => {
+    const f = n.fields || {}
+    const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
+    const changes = []
+    if (f.actual_date) changes.push(`实际完成 ${f.actual_date}`)
+    if (f.plan_start) changes.push(`计划开始 ${f.plan_start}`)
+    if (f.plan_end) changes.push(`计划结束 ${f.plan_end}`)
+    return `· **${label}**：${changes.join('，') || '—'}`
+  })
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `${project.fields?.name} 周报 · ${weekStr}` },
+      template: 'green',
+    },
+    elements: [
+      {
+        tag: 'div',
+        fields: [
+          { is_short: true, text: { tag: 'lark_md', content: `**项目编号**\n${project.fields?.no}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**当前阶段**\n${currentLabel}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**进度**\n${completed}/${total} 节点完成` } },
+        ],
+      },
+      { tag: 'hr' },
+      ...(recentNodes.length > 0
+        ? [
+            { tag: 'div', text: { tag: 'lark_md', content: '**本周变化：**' } },
+            ...recentNodes.map(n => {
+              const f = n.fields || {}
+              const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
+              const changes = []
+              if (f.actual_date) changes.push(`实际完成 ${f.actual_date}`)
+              if (f.plan_start) changes.push(`计划开始 ${f.plan_start}`)
+              if (f.plan_end) changes.push(`计划结束 ${f.plan_end}`)
+              return { tag: 'div', text: { tag: 'lark_md', content: `· **${label}**：${changes.join('，') || '—'}` } }
+            }),
+          ]
+        : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无节点变动。' } }]
+      ),
+      ...(project?.record_id ? [{
+        tag: 'action',
+        actions: [{
+          tag: 'button',
+          text: { tag: 'plain_text', content: '查看项目' },
+          type: 'primary',
+          url: `${process.env.WEB_URL || 'http://localhost:5173'}/projects/${project.record_id}`,
+        }],
+      }] : []),
+    ],
+  }
+}
+
+module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildAdminWeeklyCard, buildGroupWeeklyCard }

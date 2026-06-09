@@ -95,12 +95,12 @@ async function handleMessage(event) {
   // Weekly report command
   if (text.includes('周报') || text.includes('weekly')) {
     if (text.includes('管理') || text.includes('admin')) {
-      const report = await generateAdminWeeklyReport()
-      return { text: report }
+      const card = await generateAdminWeeklyReport()
+      return { card }
     }
     if (chatId) {
-      const report = await generateGroupWeeklyReport(chatId)
-      return { text: report || '未绑定项目，无法生成周报' }
+      const card = await generateGroupWeeklyReport(chatId)
+      return card ? { card } : { text: '未绑定项目，无法生成周报' }
     }
     return { text: '请在群聊中使用周报功能，或使用"管理周报"查看全局周报' }
   }
