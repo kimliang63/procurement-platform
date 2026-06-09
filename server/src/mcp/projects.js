@@ -20,6 +20,7 @@ async function createProject(params) {
     budget: Number(params.budget) || 0,
     category: params.category || '',
     department: params.department || '',
+    task_type: params.taskType || '',
     plan_start: params.planStart || '',
     plan_end: params.planEnd || '',
     current_stage: 'requirement',
@@ -61,6 +62,7 @@ async function updateProject(params) {
   if (rest.budget !== undefined) fields.budget = Number(rest.budget)
   if (rest.category !== undefined) fields.category = rest.category
   if (rest.department !== undefined) fields.department = rest.department
+  if (rest.taskType !== undefined) fields.task_type = rest.taskType
   if (rest.status) fields.status = rest.status
   if (rest.remark !== undefined) fields.remark = rest.remark
   if (rest.planStart !== undefined) fields.plan_start = rest.planStart

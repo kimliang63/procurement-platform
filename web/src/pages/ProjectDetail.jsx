@@ -126,6 +126,7 @@ export default function ProjectDetail() {
       department: f?.department,
       owner: f?.owner,
       budget: f?.budget,
+      task_type: f?.task_type,
       plan_start: f?.plan_start,
       plan_end: f?.plan_end,
       remark: f?.remark,
@@ -142,6 +143,7 @@ export default function ProjectDetail() {
         department: values.department,
         owner: values.owner,
         budget: values.budget,
+        taskType: values.task_type,
         planStart: values.plan_start,
         planEnd: values.plan_end,
         remark: values.remark,
@@ -241,7 +243,7 @@ export default function ProjectDetail() {
         <Descriptions column={3}>
           <Descriptions.Item label="负责人">{f?.owner}</Descriptions.Item>
           <Descriptions.Item label="采购金额">{f?.budget}万</Descriptions.Item>
-          <Descriptions.Item label="状态"><Tag color={PROJECT_STATUS_COLORS[f?.status] || 'default'}>{f?.status}</Tag></Descriptions.Item>
+          <Descriptions.Item label="任务类型">{f?.task_type || '-'}</Descriptions.Item>
           <Descriptions.Item label="所属部门">{f?.department}</Descriptions.Item>
           <Descriptions.Item label="品类">{f?.category}</Descriptions.Item>
           <Descriptions.Item label="计划周期">{f?.plan_start} ~ {f?.plan_end}</Descriptions.Item>
@@ -351,6 +353,9 @@ export default function ProjectDetail() {
           </Form.Item>
           <Form.Item name="budget" label="预算(万元)" rules={[{ required: true, message: '请输入预算' }]}>
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="task_type" label="任务类型">
+            <Select options={[{ value: '框架招标' }, { value: '单一来源' }, { value: '单次采购' }]} />
           </Form.Item>
           <Form.Item name="plan_start" label="计划开始" rules={[{ required: true, message: '请选择日期' }]}>
             <Input type="date" />

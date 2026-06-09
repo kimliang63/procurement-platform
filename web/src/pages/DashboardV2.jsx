@@ -37,7 +37,7 @@ export default function DashboardV2() {
   if (loading && !stats) return <div style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>
   if (!stats) return null
 
-  const { basic, buStats, ownerStats } = stats
+  const { basic, buStats, ownerStats, taskTypeStats } = stats
 
   // BU bar chart data (doing > 0 only)
   const buBarData = Object.entries(buStats)
@@ -54,6 +54,11 @@ export default function DashboardV2() {
   const buPieData = Object.entries(buStats)
     .filter(([, d]) => d.yearAmount > 0)
     .map(([bu, d]) => ({ name: bu, value: d.yearAmount }))
+    .sort((a, b) => b.value - a.value)
+
+  // Task type pie chart data
+  const taskTypePieData = Object.entries(taskTypeStats || {})
+    .map(([type, count]) => ({ name: type, value: count }))
     .sort((a, b) => b.value - a.value)
 
   return (
@@ -110,40 +115,79 @@ export default function DashboardV2() {
         </Card>
       )}
 
-      {/* BU Budget Pie Chart */}
-      {buPieData.length > 0 && (
-        <Card style={{ borderRadius: 8 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>年度采购金额</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 24 }}>
-            <ResponsiveContainer width={280} height={280}>
-              <PieChart>
-                <Pie
-                  data={buPieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={110}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-                  labelLine
-                >
-                  {buPieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+      {/* BU Budget Pie Chart + Task Type Pie Chart */}
+      <Row gutter={16}>
+        {buPieData.length > 0 && (
+          <Col xs={24} md={14}>
+            <Card style={{ borderRadius: 8, height: '100%' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>年度采购金额</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <ResponsiveContainer width={240} height={240}>
+                  <PieChart>
+                    <Pie
+                      data={buPieData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={95}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                      labelLine
+                    >
+                      {buPieData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => `${v.toLocaleString()}万`} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ fontSize: 12, color: '#666' }}>
+                  {buPieData.map((d, i) => (
+                    <div key={d.name} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i % COLORS.length], display: 'inline-block' }} />
+                      {d.name}: {d.value.toLocaleString()}万 ({buPieData.length > 0 ? ((d.value / buPieData.reduce((s, x) => s + x.value, 0)) * 100).toFixed(1) : 0}%)
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip formatter={(v) => `${v.toLocaleString()}万`} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              {buPieData.map((d, i) => (
-                <div key={d.name} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i % COLORS.length], display: 'inline-block' }} />
-                  {d.name}: {d.value.toLocaleString()}万
                 </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
+              </div>
+            </Card>
+          </Col>
+        )}
+        {taskTypePieData.length > 0 && (
+          <Col xs={24} md={10}>
+            <Card style={{ borderRadius: 8, height: '100%' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>任务类型</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <ResponsiveContainer width={200} height={200}>
+                  <PieChart>
+                    <Pie
+                      data={taskTypePieData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                      labelLine
+                    >
+                      {taskTypePieData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ fontSize: 12, color: '#666' }}>
+                  {taskTypePieData.map((d, i) => (
+                    <div key={d.name} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i % COLORS.length], display: 'inline-block' }} />
+                      {d.name}: {d.value}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </Col>
+        )}
+      </Row>
     </div>
   )
 }

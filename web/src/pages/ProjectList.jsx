@@ -118,6 +118,9 @@ export default function ProjectList() {
           <Form.Item name="budget" label="预算(万元)" rules={[{ required: true, message: '请输入预算' }]}>
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} placeholder="请输入数字" />
           </Form.Item>
+          <Form.Item name="taskType" label="任务类型" rules={[{ required: true, message: '请选择任务类型' }]}>
+            <Select placeholder="请选择" options={[{ value: '框架招标' }, { value: '单一来源' }, { value: '单次采购' }]} />
+          </Form.Item>
           <Form.Item name="planStart" label="计划开始" rules={[{ required: true, message: '请选择计划开始日期' }]}>
             <Input type="date" />
           </Form.Item>

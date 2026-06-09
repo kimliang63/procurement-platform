@@ -64,10 +64,19 @@ async function getDashboardStats() {
     }
   })
 
+  // Task type stats
+  const taskTypeStats = {}
+  projects.forEach(p => {
+    const tt = p.fields?.task_type || '未分类'
+    if (!taskTypeStats[tt]) taskTypeStats[tt] = 0
+    taskTypeStats[tt]++
+  })
+
   return {
     basic: { doing, completed, total, yearTotal, bidDetermined, over100w },
     buStats,
     ownerStats,
+    taskTypeStats,
   }
 }
 
