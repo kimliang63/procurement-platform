@@ -8,13 +8,23 @@ const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: 
 async function generateAdminWeeklyReport() {
   const projects = await callTool('list_projects')
 
-  const thisWeek = new Date()
-  thisWeek.setDate(thisWeek.getDate() - 7)
+  // Filter projects active this week — check plan dates and status
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - now.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 7)
 
-  // Filter projects active this week
+  function inRange(dateStr) {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    return d >= weekStart && d < weekEnd
+  }
+
   const activeProjects = projects.filter(p => {
-    const updated = p.last_modified_time ? new Date(p.last_modified_time * 1000) : null
-    return updated && updated >= thisWeek
+    const f = p.fields || {}
+    return inRange(f.plan_start) || inRange(f.plan_end) || f.status === '进行中'
   })
 
   // Fetch nodes for all active projects
@@ -67,20 +77,35 @@ async function generateGroupWeeklyReport(chatId) {
   lines.push(`进度：${completed}/${total} 节点完成`)
   lines.push('')
 
-  // List this week's changes
-  const thisWeek = new Date()
-  thisWeek.setDate(thisWeek.getDate() - 7)
+  // List this week's changes — check actual_date (completion) and plan dates
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - now.getDay()) // Sunday
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 7)
+
+  function inRange(dateStr) {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    return d >= weekStart && d < weekEnd
+  }
+
   const recentNodes = nodes.filter(n => {
-    const updated = n.last_modified_time ? new Date(n.last_modified_time * 1000) : null
-    return updated && updated >= thisWeek
+    const f = n.fields || {}
+    return inRange(f.actual_date) || inRange(f.plan_start) || inRange(f.plan_end)
   })
 
   if (recentNodes.length > 0) {
     lines.push('本周变化：')
     recentNodes.forEach(n => {
-      const label = STAGE_MAP[n.fields?.stage_key]?.label || n.fields?.stage_key
-      const status = STATUS_MAP[n.fields?.status] || n.fields?.status
-      lines.push(`· ${label}：${status}`)
+      const f = n.fields || {}
+      const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
+      const changes = []
+      if (f.actual_date && inRange(f.actual_date)) changes.push(`实际完成 ${f.actual_date}`)
+      if (f.plan_start && inRange(f.plan_start)) changes.push(`计划开始 ${f.plan_start}`)
+      if (f.plan_end && inRange(f.plan_end)) changes.push(`计划结束 ${f.plan_end}`)
+      lines.push(`· ${label}：${changes.join('，') || STATUS_MAP[f.status] || f.status}`)
     })
   } else {
     lines.push('本周无节点变动。')
