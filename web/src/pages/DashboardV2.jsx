@@ -52,7 +52,7 @@ export default function DashboardV2() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600 }}>项目看板</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects')}>
           创建项目
         </Button>
       </div>
