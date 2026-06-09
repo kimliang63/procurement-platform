@@ -16,12 +16,8 @@ async function createProject(params) {
   const fields = {
     name: params.name,
     no: projectNo,
-    company: company,
-    bu: params.bu || '',
-    application_no: params.applicationNo || '',
     owner: params.owner,
     budget: Number(params.budget) || 0,
-    task_type: params.taskType || '',
     category: params.category || '',
     department: params.department || '',
     plan_start: params.planStart || '',
@@ -61,13 +57,14 @@ async function updateProject(params) {
 
   const fields = {}
   if (rest.name) fields.name = rest.name
-  if (rest.bu !== undefined) fields.bu = rest.bu
-  if (rest.applicationNo !== undefined) fields.application_no = rest.applicationNo
   if (rest.owner) fields.owner = rest.owner
   if (rest.budget !== undefined) fields.budget = Number(rest.budget)
-  if (rest.taskType !== undefined) fields.task_type = rest.taskType
+  if (rest.category !== undefined) fields.category = rest.category
+  if (rest.department !== undefined) fields.department = rest.department
   if (rest.status) fields.status = rest.status
   if (rest.remark !== undefined) fields.remark = rest.remark
+  if (rest.planStart !== undefined) fields.plan_start = rest.planStart
+  if (rest.planEnd !== undefined) fields.plan_end = rest.planEnd
   return await updateRecord('projects', projectId, fields)
 }
 

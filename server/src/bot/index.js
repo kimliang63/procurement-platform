@@ -116,10 +116,6 @@ async function handleMessage(event) {
   if (result.intent === 'create_project') {
     const params = result.params || {}
 
-    // 参数映射：LLM 返回的字段名 → createProject 期望的字段名
-    if (params.department && !params.bu) params.bu = params.department
-    if (params.category && !params.taskType) params.taskType = params.category
-
     // 预算归一化
     params.budget = normalizeBudget(params.budget)
 
@@ -177,7 +173,7 @@ async function handleMessage(event) {
         const session = getSession(senderId)
         if (session) session.currentProjectId = data?.record_id
         return {
-          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department || params.bu}\n预算：${params.budget}万\n当前阶段：需求确认`,
+          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department}\n预算：${params.budget}万\n当前阶段：需求确认`,
         }
       } catch (e) {
         console.error('Create project error:', e.message)

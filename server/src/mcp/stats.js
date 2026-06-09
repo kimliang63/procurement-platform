@@ -25,10 +25,10 @@ async function getDashboardStats() {
 
   // BU stats
   const buStats = {}
-  const buses = ['LBU', 'FBU', 'HQU', 'ABU', 'PBU', 'GUS', 'GUE']
+  const buses = ['LBU', 'FBU', 'ABU']
   const totalAmount = projects.reduce((sum, p) => sum + (p.fields?.budget || 0), 0)
   buses.forEach(bu => {
-    const buProjects = projects.filter(p => p.fields?.bu === bu)
+    const buProjects = projects.filter(p => p.fields?.department === bu)
     const buDoing = buProjects.filter(p => p.fields?.status === '进行中' || p.fields?.status === '正常').length
     const buYearProjects = buProjects.filter(p => {
       const created = p.created_time ? new Date(p.created_time * 1000) : null

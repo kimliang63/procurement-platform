@@ -125,9 +125,6 @@ export default function ProjectDetail() {
       category: f?.category,
       department: f?.department,
       owner: f?.owner,
-      bu: f?.bu,
-      task_type: f?.task_type,
-      application_no: f?.application_no,
       budget: f?.budget,
       plan_start: f?.plan_start,
       plan_end: f?.plan_end,
@@ -144,9 +141,6 @@ export default function ProjectDetail() {
         category: values.category,
         department: values.department,
         owner: values.owner,
-        bu: values.bu,
-        taskType: values.task_type,
-        applicationNo: values.application_no,
         budget: values.budget,
         planStart: values.plan_start,
         planEnd: values.plan_end,
@@ -246,10 +240,7 @@ export default function ProjectDetail() {
       >
         <Descriptions column={3}>
           <Descriptions.Item label="负责人">{f?.owner}</Descriptions.Item>
-          <Descriptions.Item label="所属BU">{f?.bu || '-'}</Descriptions.Item>
-          <Descriptions.Item label="任务类型">{f?.task_type || '-'}</Descriptions.Item>
           <Descriptions.Item label="采购金额">{f?.budget}万</Descriptions.Item>
-          <Descriptions.Item label="申请单号">{f?.application_no || '-'}</Descriptions.Item>
           <Descriptions.Item label="状态"><Tag color={PROJECT_STATUS_COLORS[f?.status] || 'default'}>{f?.status}</Tag></Descriptions.Item>
           <Descriptions.Item label="所属部门">{f?.department}</Descriptions.Item>
           <Descriptions.Item label="品类">{f?.category}</Descriptions.Item>
@@ -347,15 +338,6 @@ export default function ProjectDetail() {
       <Modal title="编辑项目" open={projectModal} onOk={handleSaveProject} onCancel={() => setProjectModal(false)} width={640}>
         <Form form={projectForm} layout="vertical">
           <Form.Item name="name" label="项目名称" rules={[{ required: true, message: '请输入项目名称' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="bu" label="所属BU">
-            <Select options={[{ value: 'FBU' }, { value: 'LBU' }, { value: 'ABU' }, { value: 'MBU' }]} />
-          </Form.Item>
-          <Form.Item name="task_type" label="任务类型">
-            <Select options={[{ value: '设备采购' }, { value: '材料采购' }, { value: '服务采购' }, { value: '工程采购' }]} />
-          </Form.Item>
-          <Form.Item name="application_no" label="申请单号">
             <Input />
           </Form.Item>
           <Form.Item name="category" label="采购品类" rules={[{ required: true, message: '请选择采购品类' }]}>
