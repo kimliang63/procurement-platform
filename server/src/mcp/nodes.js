@@ -72,6 +72,8 @@ async function initProjectNodes(params) {
     fields: {
       project_id: projectId,
       stage_key: key,
+      stage_label: info.label,
+      order: info.order,
       status: info.order === 1 ? 'in_progress' : 'pending',
       plan_start: '',
       plan_end: '',
@@ -84,6 +86,11 @@ async function initProjectNodes(params) {
     path: { app_token: process.env.FEISHU_BITABLE_APP_TOKEN, table_id: TABLE_IDS.nodes },
     data: { records },
   })
+  if (res.code !== 0) {
+    throw new Error(`节点初始化失败: ${res.msg}`)
+  }
+  const { invalidateCache } = require('../feishu/bitable')
+  invalidateCache('nodes')
   return res.data?.records || []
 }
 

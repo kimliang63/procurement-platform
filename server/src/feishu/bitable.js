@@ -113,4 +113,4 @@ async function deleteRecord(tableKey, recordId) {
   invalidateCache(tableKey)
 }
 
-module.exports = { listRecords, getRecord, createRecord, updateRecord, deleteRecord, TABLE_IDS }
+module.exports = { listRecords, getRecord, createRecord, updateRecord, deleteRecord, TABLE_IDS, invalidateCache }
