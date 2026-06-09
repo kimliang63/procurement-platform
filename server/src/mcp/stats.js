@@ -14,6 +14,13 @@ async function getDashboardStats() {
   const completed = projects.filter(p => p.fields?.status === '项目完成' || p.fields?.status === '已完成').length
   const total = projects.length
 
+  // 本年累计项目数
+  const yearProjects = projects.filter(p => {
+    const created = p.created_time ? new Date(p.created_time * 1000) : null
+    return created && created >= new Date(yearStart) && created <= new Date(yearEnd)
+  })
+  const yearTotal = yearProjects.length
+
   // 已定标: bid_determine node completed
   const bidDetermined = projects.filter(p => {
     const projectNodes = nodes.filter(n => n.fields?.project_id === p.record_id)
@@ -58,7 +65,7 @@ async function getDashboardStats() {
   })
 
   return {
-    basic: { doing, completed, total, bidDetermined, over100w },
+    basic: { doing, completed, total, yearTotal, bidDetermined, over100w },
     buStats,
     ownerStats,
   }
