@@ -76,13 +76,20 @@ async function handleMessage(event) {
   // 解析发送者真实姓名
   const senderName = await resolveUserName(senderId)
 
-  // Check for group binding command
+  // Check for group binding command — 支持多种写法
   if (text.includes('绑定')) {
-    const match = text.match(/绑定\s+(.+)/)
-    if (match && chatId) {
-      const result = await bindGroup(chatId, match[1], senderId)
+    if (!chatId) {
+      return { text: '绑定功能仅支持群聊使用' }
+    }
+    // 提取项目名称：支持 "绑定 XX项目" / "绑定XX" / "绑定 项目名称"
+    const match = text.match(/绑定[项目]*\s*(.+)/)
+    const projectName = match?.[1]?.trim()
+    if (projectName) {
+      const result = await bindGroup(chatId, projectName, senderId)
       return { text: result.message || `已绑定项目：${result.project.fields?.name}` }
     }
+    // 没有项目名 → 追问
+    return { text: '请告诉我要绑定的项目名称，例如：绑定 XX设备采购项目' }
   }
 
   // Weekly report command
@@ -170,10 +177,16 @@ async function handleMessage(event) {
         if (data?.record_id) {
           await callTool('init_project_nodes', { projectId: data.record_id })
         }
+        // 群聊中创建 → 自动绑定
+        if (chatId && data?.record_id) {
+          try {
+            await bindGroup(chatId, data.fields?.name, senderId)
+          } catch {}
+        }
         const session = getSession(senderId)
         if (session) session.currentProjectId = data?.record_id
         return {
-          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department}\n预算：${params.budget}万\n当前阶段：需求确认`,
+          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department}\n预算：${params.budget}万\n当前阶段：需求确认${chatId ? '\n已自动绑定到当前群聊' : ''}`,
         }
       } catch (e) {
         console.error('Create project error:', e.message)
@@ -352,6 +365,10 @@ async function handleCardAction(action, chatId, senderId) {
         const data = await callTool('create_project', params)
         if (!data || !data.record_id) {
           throw new Error('项目创建失败：未返回有效数据')
+        }
+        // 群聊中创建 → 自动绑定
+        if (chatId && data.record_id) {
+          try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
         }
         // 发送成功卡片
         if (chatId) {
