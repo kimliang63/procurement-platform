@@ -68,13 +68,10 @@ async function getProject(params) {
 }
 
 async function listProjects(params = {}) {
-  // Only pass known params to listRecords to prevent unintended filter injection
-  const filterParams = {}
-  if (params.owner) filterParams.owner = params.owner
-
-  let projects = await listRecords('projects', filterParams)
-  if (filterParams.owner) {
-    projects = projects.filter(p => p.fields?.owner === filterParams.owner)
+  let projects = await listRecords('projects')
+  // filterByOwner middleware sets req.query.owner for non-admin users
+  if (params.owner) {
+    projects = projects.filter(p => p.fields?.owner === params.owner)
   }
   return projects
 }

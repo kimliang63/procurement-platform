@@ -24,7 +24,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const project = await callTool('create_project', req.body)
-    // 自动初始化 13 个节点
+    // 自动初始化 15 个节点
     if (project?.record_id) {
       await callTool('init_project_nodes', { projectId: project.record_id })
     }
