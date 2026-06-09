@@ -1,3 +1,5 @@
+const { STAGE_MAP } = require('../mcp')
+
 function buildStatusChangeCard(project, nodeKey, status, nextNode) {
   const nodeLabel = STAGE_MAP[nodeKey]?.label || nodeKey
   const nextLabel = nextNode ? (STAGE_MAP[nextNode]?.label || nextNode) : '—'
@@ -165,8 +167,6 @@ function buildProjectCreatedCard(data, params) {
     ],
   }
 }
-
-const { STAGE_MAP } = require('../mcp')
 
 function buildIssueAlertCard(project, issue) {
   return {

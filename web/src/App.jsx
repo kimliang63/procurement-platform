@@ -24,13 +24,13 @@ function AuthCallback() {
     }
 
     if (token) {
-      localStorage.setItem('feishu_token', token)
+      // Save user info from callback params
       try {
         const user = JSON.parse(decodeURIComponent(userStr))
         localStorage.setItem('feishu_user', JSON.stringify(user))
       } catch {}
 
-      // 获取用户角色（通过 token 校验身份）
+      // Validate token by calling /api/auth/me first, then save token + navigate
       const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
       fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -38,16 +38,23 @@ function AuthCallback() {
         .then(res => res.json())
         .then(data => {
           if (data.data) {
+            // Token valid — save it and user role, then navigate
+            localStorage.setItem('feishu_token', token)
             const saved = localStorage.getItem('feishu_user')
             const user = saved ? JSON.parse(saved) : {}
             user.role = data.data.role || 'member'
+            user.open_id = data.data.open_id
+            user.record_id = data.data.record_id
             localStorage.setItem('feishu_user', JSON.stringify(user))
+            setStatus('登录成功，跳转中...')
+            navigate('/')
+          } else {
+            setStatus('登录失败: ' + (data.error || 'Token 无效'))
           }
         })
-        .catch(() => {})
-
-      setStatus('登录成功，跳转中...')
-      setTimeout(() => navigate('/'), 1000)
+        .catch(() => {
+          setStatus('登录失败: 网络错误')
+        })
     } else {
       setStatus('登录失败: 未获取到 token')
     }

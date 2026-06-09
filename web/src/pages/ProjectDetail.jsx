@@ -65,22 +65,25 @@ export default function ProjectDetail() {
   }
 
   const handleSave = async () => {
-    const values = await form.validateFields()
-    const updateFields = {
-      plan_start: values.plan_start || '',
-      plan_end: values.plan_end || '',
-      actual_date: values.actual_date || '',
-      status: values.status || 'pending',
-      note: values.note || '',
+    try {
+      const values = await form.validateFields()
+      const updateFields = {
+        plan_start: values.plan_start || '',
+        plan_end: values.plan_end || '',
+        actual_date: values.actual_date || '',
+        note: values.note || '',
+      }
+      // 填了实际日期时自动推进节点
+      if (values.actual_date && editNode.fields?.status !== 'completed') {
+        await advanceNode(id, editNode.fields?.stage_key, values.actual_date)
+      }
+      await updateNode(id, editNode.fields?.stage_key, updateFields)
+      message.success('保存成功')
+      setEditModal(false)
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
     }
-    // 填了实际日期时自动标记完成
-    if (values.actual_date && editNode.fields?.status !== 'completed') {
-      await advanceNode(id, editNode.fields?.stage_key, values.actual_date)
-    }
-    await updateNode(id, editNode.fields?.stage_key, updateFields)
-    message.success('保存成功')
-    setEditModal(false)
-    fetchData()
   }
 
   const handleCreateIssue = (record) => {
@@ -90,21 +93,29 @@ export default function ProjectDetail() {
   }
 
   const handleSaveIssue = async () => {
-    const values = await issueForm.validateFields()
-    await createIssue({
-      projectId: id,
-      stageKey: issueNode.fields?.stage_key,
-      ...values,
-    })
-    message.success('问题已创建')
-    setIssueModal(false)
-    fetchData()
+    try {
+      const values = await issueForm.validateFields()
+      await createIssue({
+        projectId: id,
+        stageKey: issueNode.fields?.stage_key,
+        ...values,
+      })
+      message.success('问题已创建')
+      setIssueModal(false)
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
+    }
   }
 
   const handleUpdateIssue = async (record, status) => {
-    await updateIssue(record.record_id, { status })
-    message.success('问题状态已更新')
-    fetchData()
+    try {
+      await updateIssue(record.record_id, { status })
+      message.success('问题状态已更新')
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
+    }
   }
 
   const handleEditProject = () => {
@@ -126,31 +137,38 @@ export default function ProjectDetail() {
   }
 
   const handleSaveProject = async () => {
-    const values = await projectForm.validateFields()
-    // 映射字段名：前端 snake_case → 后端 camelCase
-    const payload = {
-      name: values.name,
-      category: values.category,
-      department: values.department,
-      owner: values.owner,
-      bu: values.bu,
-      taskType: values.task_type,
-      applicationNo: values.application_no,
-      budget: values.budget,
-      planStart: values.plan_start,
-      planEnd: values.plan_end,
-      remark: values.remark,
+    try {
+      const values = await projectForm.validateFields()
+      const payload = {
+        name: values.name,
+        category: values.category,
+        department: values.department,
+        owner: values.owner,
+        bu: values.bu,
+        taskType: values.task_type,
+        applicationNo: values.application_no,
+        budget: values.budget,
+        planStart: values.plan_start,
+        planEnd: values.plan_end,
+        remark: values.remark,
+      }
+      await updateProject(id, payload)
+      message.success('项目已更新')
+      setProjectModal(false)
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
     }
-    await updateProject(id, payload)
-    message.success('项目已更新')
-    setProjectModal(false)
-    fetchData()
   }
 
   const handleDeleteProject = async () => {
-    await deleteProject(id)
-    message.success('项目已删除')
-    navigate('/projects')
+    try {
+      await deleteProject(id)
+      message.success('项目已删除')
+      navigate('/projects')
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
+    }
   }
 
   const getNodeIssues = (stageKey) => issues.filter(i => i.fields?.stage_key === stageKey)

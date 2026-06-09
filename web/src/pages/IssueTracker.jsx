@@ -37,18 +37,22 @@ export default function IssueTracker() {
   const getProjectName = (id) => projects.find(p => p.record_id === id)?.fields?.name || id
 
   const handleCreate = async () => {
-    const values = await form.validateFields()
-    if (editItem) {
-      await updateIssue(editItem.record_id, values)
-      message.success('问题已更新')
-    } else {
-      await createIssue(values)
-      message.success('问题已创建')
+    try {
+      const values = await form.validateFields()
+      if (editItem) {
+        await updateIssue(editItem.record_id, values)
+        message.success('问题已更新')
+      } else {
+        await createIssue(values)
+        message.success('问题已创建')
+      }
+      setModalOpen(false)
+      setEditItem(null)
+      form.resetFields()
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
     }
-    setModalOpen(false)
-    setEditItem(null)
-    form.resetFields()
-    fetchData()
   }
 
   const handleEdit = (record) => {
@@ -65,15 +69,23 @@ export default function IssueTracker() {
   }
 
   const handleDelete = async (id) => {
-    await deleteIssue(id)
-    message.success('问题已删除')
-    fetchData()
+    try {
+      await deleteIssue(id)
+      message.success('问题已删除')
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
+    }
   }
 
   const handleStatusChange = async (id, status) => {
-    await updateIssue(id, { status })
-    message.success('状态已更新')
-    fetchData()
+    try {
+      await updateIssue(id, { status })
+      message.success('状态已更新')
+      fetchData()
+    } catch (e) {
+      if (e?.response?.data?.error) message.error(e.response.data.error)
+    }
   }
 
   const priorityColor = { '高': 'red', '中': 'orange', '低': 'default' }

@@ -101,23 +101,7 @@ app.post('/webhook/bot', async (req, res) => {
     if (action?.value) {
       const result = await handleCardAction(action.value, chatId, operatorId)
 
-      if (result?.card && chatId) {
-        try {
-          await client.im.message.create({
-            params: { receive_id_type: 'chat_id' },
-            data: {
-              receive_id: chatId,
-              msg_type: 'interactive',
-              content: JSON.stringify(result.card),
-            },
-          })
-          console.log('Card reply sent to chat:', chatId)
-        } catch (e) {
-          console.error('Failed to send card reply:', e.message)
-        }
-      }
-
-      // 返回 toast
+      // handleCardAction 已经发送了回复消息，这里只返回 toast
       if (result?.toast) {
         return res.json({ toast: result.toast })
       }

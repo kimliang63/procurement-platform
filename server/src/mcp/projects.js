@@ -1,13 +1,11 @@
 const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
 
 async function createProject(params) {
-  console.log('[Project] createProject params:', JSON.stringify(params))
   const existing = await listRecords('projects') || []
   if (existing.some(p => p.fields?.name === params.name)) {
     throw new Error('项目名称已存在')
   }
 
-  // Auto-generate project number by company
   const company = params.company || 'ZT'
   const prefix = company === 'GOFO' ? 'GFCG' : 'CG'
   const year = new Date().getFullYear()
@@ -24,15 +22,16 @@ async function createProject(params) {
     owner: params.owner,
     budget: Number(params.budget) || 0,
     task_type: params.taskType || '',
+    category: params.category || '',
+    department: params.department || '',
+    plan_start: params.planStart || '',
+    plan_end: params.planEnd || '',
     current_stage: 'requirement',
     status: '进行中',
     remark: params.remark || '',
   }
 
   const result = await createRecord('projects', fields)
-  if (!result || !result.record_id) {
-    throw new Error('项目创建失败：数据库未返回有效记录')
-  }
 
   // Post-creation duplicate check to handle race conditions
   const allProjects = await listRecords('projects') || []

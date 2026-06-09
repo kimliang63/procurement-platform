@@ -169,22 +169,19 @@ async function handleMessage(event) {
     // 用户确认 → 执行创建
     if (isConfirm) {
       try {
-        console.log('[Bot] Creating project with params:', JSON.stringify(params))
         const data = await callTool('create_project', params)
-        console.log('[Bot] Project created:', JSON.stringify({ record_id: data?.record_id, name: data?.fields?.name }))
-        // 自动初始化 13 个默认节点
+        // 自动初始化 15 个默认节点
         if (data?.record_id) {
           await callTool('init_project_nodes', { projectId: data.record_id })
         }
-        // 记录当前项目 ID，后续节点操作可直接引用
         const session = getSession(senderId)
         if (session) session.currentProjectId = data?.record_id
         return {
-          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department}\n预算：${params.budget}万\n当前阶段：需求确认`,
+          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department || params.bu}\n预算：${params.budget}万\n当前阶段：需求确认`,
         }
       } catch (e) {
-        console.error('[Bot] Create project error:', e.message, e.stack)
-        return { text: `操作失败：${e.message}` }
+        console.error('Create project error:', e.message)
+        return { text: `创建失败：${e.message}` }
       }
     }
   }

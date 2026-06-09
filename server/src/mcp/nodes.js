@@ -55,6 +55,7 @@ function computeNodeStatus(node) {
 
 async function checkAndAutoComplete(projectId) {
   const nodes = await listProjectNodes({ projectId })
+  if (nodes.length === 0) return
   const allCompleted = nodes.every(n => n.fields?.actual_date)
   if (allCompleted) {
     const project = await require('./projects').getProject({ projectId })
@@ -173,9 +174,9 @@ async function listProjectNodes(params) {
   const { projectId } = params
   const nodes = await listRecords('nodes', {
     filter: `CurrentValue.[project_id]="${projectId}"`
-  })
+  }) || []
   return nodes
-    .sort((a, b) => (STAGE_MAP[a.fields.stage_key]?.order || 0) - (STAGE_MAP[b.fields.stage_key]?.order || 0))
+    .sort((a, b) => (STAGE_MAP[a.fields?.stage_key]?.order || 0) - (STAGE_MAP[b.fields?.stage_key]?.order || 0))
     .map(n => ({ ...n, fields: { ...n.fields, status: computeNodeStatus(n) } }))
 }
 
