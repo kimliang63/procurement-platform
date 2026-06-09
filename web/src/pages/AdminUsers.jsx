@@ -91,10 +91,10 @@ export default function AdminUsers() {
       ),
     },
     {
-      title: '创建时间',
-      dataIndex: 'created_time',
-      key: 'created_time',
-      render: (t) => t ? new Date(t * 1000).toLocaleString('zh-CN') : '-',
+      title: '记录 ID',
+      dataIndex: 'record_id',
+      key: 'record_id',
+      ellipsis: true,
     },
   ]
 

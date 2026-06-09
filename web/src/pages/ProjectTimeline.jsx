@@ -148,7 +148,8 @@ export default function ProjectTimeline() {
             <Select placeholder="请选择" options={[
               { value: '框架招标', label: '框架招标' },
               { value: '单一来源', label: '单一来源' },
-              { value: '单次采购', label: '单次采购' },
+              { value: '单次采购<100万', label: '单次采购＜100万' },
+              { value: '单次采购≥100万', label: '单次采购≥100万' },
             ]} />
           </Form.Item>
           <Form.Item name="planStart" label="计划开始" rules={[{ required: true, message: '请选择日期' }]}>
