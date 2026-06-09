@@ -38,9 +38,7 @@ async function createRecord(tableKey, fields) {
     path: { app_token: APP_TOKEN, table_id: tableId },
     data: { fields },
   })
-  console.log('[Bitable] createRecord response code:', res.code, 'msg:', res.msg)
-  console.log('[Bitable] createRecord res.data keys:', res.data ? Object.keys(res.data) : 'null')
-  console.log('[Bitable] createRecord res.data:', JSON.stringify(res.data).substring(0, 500))
+  console.log('[Bitable] createRecord code:', res.code, 'msg:', res.msg, 'hasData:', !!res.data, 'dataKeys:', res.data ? Object.keys(res.data) : [])
   return res.data?.record
 }
 
