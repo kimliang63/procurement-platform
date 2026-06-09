@@ -1,7 +1,6 @@
 {
-  "buildCommand": "cd web && npm install && rm -rf dist && rm -rf node_modules/.vite && echo 'Build $(date +%s)' && npm run build",
+  "buildCommand": "cd web && npm install && npm run build",
   "outputDirectory": "web/dist",
-  "installCommand": "cd web && npm install",
   "rewrites": [
     { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ]
