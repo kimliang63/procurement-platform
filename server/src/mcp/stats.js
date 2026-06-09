@@ -14,12 +14,12 @@ async function getDashboardStats() {
   const completed = projects.filter(p => p.fields?.status === '项目完成' || p.fields?.status === '已完成').length
   const total = projects.length
 
-  // 本年累计项目数
+  // 本年累计项目数（created_time 不可用，使用 plan_start 判断）
   const yearProjects = projects.filter(p => {
-    const created = p.created_time ? new Date(p.created_time * 1000) : null
-    return created && created >= new Date(yearStart) && created <= new Date(yearEnd)
+    const ps = p.fields?.plan_start || ''
+    return ps >= yearStart && ps <= yearEnd
   })
-  const yearTotal = yearProjects.length
+  const yearTotal = yearProjects.length || projects.length
 
   // 已定标: bid_determine node completed
   const bidDetermined = projects.filter(p => {
@@ -38,10 +38,10 @@ async function getDashboardStats() {
     const buProjects = projects.filter(p => p.fields?.department === bu)
     const buDoing = buProjects.filter(p => p.fields?.status === '进行中' || p.fields?.status === '正常').length
     const buYearProjects = buProjects.filter(p => {
-      const created = p.created_time ? new Date(p.created_time * 1000) : null
-      return created && created >= new Date(yearStart) && created <= new Date(yearEnd)
+      const ps = p.fields?.plan_start || ''
+      return ps >= yearStart && ps <= yearEnd
     })
-    const buYearAmount = buYearProjects.reduce((sum, p) => sum + (p.fields?.budget || 0), 0)
+    const buYearAmount = (buYearProjects.length > 0 ? buYearProjects : buProjects).reduce((sum, p) => sum + (p.fields?.budget || 0), 0)
 
     buStats[bu] = {
       doing: buDoing,
