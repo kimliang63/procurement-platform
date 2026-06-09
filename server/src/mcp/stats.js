@@ -33,7 +33,7 @@ async function getDashboardStats() {
   // BU stats
   const buStats = {}
   const buses = ['LBU', 'FBU', 'ABU']
-  const totalAmount = projects.reduce((sum, p) => sum + (p.fields?.budget || 0), 0)
+  const totalAmount = projects.reduce((sum, p) => sum + (Number(p.fields?.budget) || 0), 0)
   buses.forEach(bu => {
     const buProjects = projects.filter(p => p.fields?.department === bu)
     const buDoing = buProjects.filter(p => p.fields?.status === '进行中' || p.fields?.status === '正常').length
@@ -41,7 +41,7 @@ async function getDashboardStats() {
       const ps = p.fields?.plan_start || ''
       return ps >= yearStart && ps <= yearEnd
     })
-    const buYearAmount = (buYearProjects.length > 0 ? buYearProjects : buProjects).reduce((sum, p) => sum + (p.fields?.budget || 0), 0)
+    const buYearAmount = (buYearProjects.length > 0 ? buYearProjects : buProjects).reduce((sum, p) => sum + (Number(p.fields?.budget) || 0), 0)
 
     buStats[bu] = {
       doing: buDoing,
@@ -58,8 +58,8 @@ async function getDashboardStats() {
     if (!owner) return
     if (!ownerStats[owner]) ownerStats[owner] = { doing: 0, yearCount: 0 }
     if (p.fields?.status === '进行中' || p.fields?.status === '正常') ownerStats[owner].doing++
-    const created = p.created_time ? new Date(p.created_time * 1000) : null
-    if (created && created >= new Date(yearStart) && created <= new Date(yearEnd)) {
+    const ps = p.fields?.plan_start || ''
+    if (ps >= yearStart && ps <= yearEnd) {
       ownerStats[owner].yearCount++
     }
   })
