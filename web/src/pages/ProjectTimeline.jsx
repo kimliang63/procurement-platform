@@ -138,16 +138,11 @@ export default function ProjectTimeline() {
           <Form.Item name="name" label="项目名称" rules={[{ required: true, message: '请输入项目名称' }]}>
             <Input placeholder="如：XX设备采购" />
           </Form.Item>
-          <Form.Item name="bu" label="所属BU" rules={[{ required: true, message: '请选择BU' }]}>
-            <Select placeholder="请选择" options={[
-              { value: 'LBU', label: 'LBU' },
-              { value: 'FBU', label: 'FBU' },
-              { value: 'HQU', label: 'HQU' },
-              { value: 'ABU', label: 'ABU' },
-              { value: 'PBU', label: 'PBU' },
-              { value: 'GUS', label: 'GUS' },
-              { value: 'GUE', label: 'GUE' },
-            ]} />
+          <Form.Item name="category" label="采购品类" rules={[{ required: true, message: '请选择采购品类' }]}>
+            <Select placeholder="请选择" options={[{ value: '设备' }, { value: '材料' }, { value: '服务' }, { value: '其他' }]} />
+          </Form.Item>
+          <Form.Item name="department" label="所属部门" rules={[{ required: true, message: '请选择所属部门' }]}>
+            <Select placeholder="请选择" options={[{ value: 'FBU' }, { value: 'LBU' }, { value: 'ABU' }]} />
           </Form.Item>
           <Form.Item name="owner" label="负责人" rules={[{ required: true, message: '请选择负责人' }]}>
             <Select placeholder="请选择" showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} options={userOptions} />
@@ -155,16 +150,11 @@ export default function ProjectTimeline() {
           <Form.Item name="budget" label="采购金额(万元)" rules={[{ required: true, message: '请输入金额' }]}>
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="taskType" label="任务类型" rules={[{ required: true, message: '请选择任务类型' }]}>
-            <Select placeholder="请选择" options={[
-              { value: '单次采购<100万', label: '单次采购<100万' },
-              { value: '单次采购≥100万', label: '单次采购≥100万' },
-              { value: '单一来源', label: '单一来源' },
-              { value: '框架招标', label: '框架招标' },
-            ]} />
+          <Form.Item name="planStart" label="计划开始" rules={[{ required: true, message: '请选择日期' }]}>
+            <Input type="date" />
           </Form.Item>
-          <Form.Item name="applicationNo" label="申请单号">
-            <Input placeholder="飞书OA单号" />
+          <Form.Item name="planEnd" label="计划结束" rules={[{ required: true, message: '请选择日期' }]}>
+            <Input type="date" />
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea />

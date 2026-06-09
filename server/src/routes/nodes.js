@@ -11,11 +11,17 @@ async function checkProjectOwnership(req, res, next) {
 
   try {
     const project = await callTool('get_project', { projectId })
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在' })
+    }
     if (project?.fields?.owner !== req.user?.name) {
       return res.status(403).json({ error: '无权操作此项目' })
     }
     next()
   } catch (e) {
+    if (e.message?.includes('not found') || e.message?.includes('不存在')) {
+      return res.status(404).json({ error: '项目不存在' })
+    }
     next(e)
   }
 }
