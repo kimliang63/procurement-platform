@@ -33,10 +33,14 @@ async function getRecord(tableKey, recordId) {
 
 async function createRecord(tableKey, fields) {
   const tableId = TABLE_IDS[tableKey]
+  console.log('[Bitable] createRecord:', tableKey, 'tableId:', tableId)
   const res = await client.bitable.appTableRecord.create({
     path: { app_token: APP_TOKEN, table_id: tableId },
     data: { fields },
   })
+  console.log('[Bitable] createRecord response code:', res.code, 'msg:', res.msg)
+  console.log('[Bitable] createRecord res.data keys:', res.data ? Object.keys(res.data) : 'null')
+  console.log('[Bitable] createRecord res.data:', JSON.stringify(res.data).substring(0, 500))
   return res.data?.record
 }
 
