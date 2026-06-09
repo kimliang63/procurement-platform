@@ -116,6 +116,10 @@ async function handleMessage(event) {
   if (result.intent === 'create_project') {
     const params = result.params || {}
 
+    // 参数映射：LLM 返回的字段名 → createProject 期望的字段名
+    if (params.department && !params.bu) params.bu = params.department
+    if (params.category && !params.taskType) params.taskType = params.category
+
     // 预算归一化
     params.budget = normalizeBudget(params.budget)
 
@@ -353,6 +357,9 @@ async function handleCardAction(action, chatId, senderId) {
       await sendProcessedCard(chatId, '正在创建项目...', 'blue', params, '⏳ 正在创建项目，请稍候...')
       try {
         const data = await callTool('create_project', params)
+        if (!data || !data.record_id) {
+          throw new Error('项目创建失败：未返回有效数据')
+        }
         // 发送成功卡片
         if (chatId) {
           const card = buildProjectCreatedCard(data, params)

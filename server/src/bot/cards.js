@@ -80,12 +80,12 @@ function buildConfirmCard(project, nodeKey, planDate, overdueDays) {
 
 function buildProjectConfirmCard(params) {
   const fields = [
-    { is_short: true, text: { tag: 'lark_md', content: `**项目名称**\n${params.name}` } },
-    { is_short: true, text: { tag: 'lark_md', content: `**采购品类**\n${params.category}` } },
-    { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params.owner}` } },
-    { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params.department}` } },
-    { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params.budget}万` } },
-    { is_short: true, text: { tag: 'lark_md', content: `**计划周期**\n${params.planStart} ~ ${params.planEnd}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**项目名称**\n${params?.name || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**采购品类**\n${params?.category || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params?.owner || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params?.department || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params?.budget || '—'}万` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**计划周期**\n${params?.planStart || '—'} ~ ${params?.planEnd || '—'}` } },
   ]
 
   return {
@@ -143,15 +143,15 @@ function buildProjectCreatedCard(data, params) {
       {
         tag: 'div',
         fields: [
-          { is_short: true, text: { tag: 'lark_md', content: `**项目名称**\n${data.fields?.name}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**项目编号**\n${data.fields?.no}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params.owner}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params.department}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params.budget}万` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**项目名称**\n${data?.fields?.name || '—'}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**项目编号**\n${data?.fields?.no || '—'}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params?.owner || '—'}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params?.department || '—'}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params?.budget || '—'}万` } },
           { is_short: true, text: { tag: 'lark_md', content: `**当前阶段**\n需求确认` } },
         ],
       },
-      {
+      ...(data?.record_id ? [{
         tag: 'action',
         actions: [
           {
@@ -161,7 +161,7 @@ function buildProjectCreatedCard(data, params) {
             url: `${process.env.WEB_URL || 'http://localhost:5173'}/projects/${data.record_id}`,
           },
         ],
-      },
+      }] : []),
     ],
   }
 }
