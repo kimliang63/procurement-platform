@@ -53,12 +53,13 @@ function computeNodeStatus(node) {
   return 'pending'
 }
 
-async function checkAndAutoComplete(projectId) {
-  const nodes = await listProjectNodes({ projectId })
+async function checkAndAutoComplete(projectId, projectData, nodesData) {
+  // Use provided data or fetch fresh
+  const nodes = nodesData || await listProjectNodes({ projectId })
   if (nodes.length === 0) return
   const allCompleted = nodes.every(n => n.fields?.actual_date)
   if (allCompleted) {
-    const project = await require('./projects').getProject({ projectId })
+    const project = projectData || await require('./projects').getProject({ projectId })
     if (project?.fields?.status !== '项目完成') {
       await require('./projects').updateProject({ projectId, status: '项目完成' })
     }
@@ -91,16 +92,19 @@ async function advanceNode(params) {
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
-  // Business rule: check if node is mandatory for this project type
-  const project = await require('./projects').getProject({ projectId })
+  // Fetch project and node in parallel
+  const [project, nodes] = await Promise.all([
+    require('./projects').getProject({ projectId }),
+    listRecords('nodes', {
+      filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
+    }),
+  ])
+
   const taskType = project?.fields?.task_type
   if (taskType && !isNodeMandatory(taskType, stageKey)) {
     throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于任务类型"${taskType}"，无法推进`)
   }
 
-  const nodes = await listRecords('nodes', {
-    filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
-  })
   const node = nodes[0]
   if (!node) throw new Error(`未找到节点: projectId=${projectId}, stageKey=${stageKey}`)
   if (!node.record_id) throw new Error('节点数据异常: 缺少 record_id')
@@ -110,9 +114,9 @@ async function advanceNode(params) {
     actual_date: finalActualDate,
   })
 
-  // Auto-complete project if all nodes done (non-blocking)
+  // Auto-complete check (non-blocking, reuse fetched project data)
   try {
-    await checkAndAutoComplete(projectId)
+    await checkAndAutoComplete(projectId, project)
   } catch (e) {
     console.error('Auto-complete check failed:', e.message)
   }

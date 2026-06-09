@@ -11,9 +11,37 @@ const TABLE_IDS = {
   weekly_config: process.env.BITABLE_WEEKLY_CONFIG_TABLE_ID,
 }
 
+// Simple TTL cache: { data, expireAt }
+const listCache = new Map()
+const CACHE_TTL = 60 * 1000 // 60s
+
+function getCached(key) {
+  const entry = listCache.get(key)
+  if (entry && Date.now() < entry.expireAt) return entry.data
+  listCache.delete(key)
+  return null
+}
+
+function setCache(key, data) {
+  listCache.set(key, { data, expireAt: Date.now() + CACHE_TTL })
+}
+
+function invalidateCache(tableKey) {
+  for (const k of listCache.keys()) {
+    if (k.startsWith(tableKey + ':')) listCache.delete(k)
+  }
+}
+
 async function listRecords(tableKey, filter = {}) {
   const tableId = TABLE_IDS[tableKey]
   if (!tableId) throw new Error(`Missing table ID for: ${tableKey}`)
+
+  // Build cache key from table + filter
+  const filterKey = filter.filter || ''
+  const cacheKey = `${tableKey}:${filterKey}`
+
+  const cached = getCached(cacheKey)
+  if (cached) return cached
 
   let allItems = []
   let pageToken = undefined
@@ -32,6 +60,7 @@ async function listRecords(tableKey, filter = {}) {
     pageToken = res.data?.page_token
   } while (pageToken)
 
+  setCache(cacheKey, allItems)
   return allItems
 }
 
@@ -59,6 +88,8 @@ async function createRecord(tableKey, fields) {
     console.error('[Bitable] createRecord unexpected response:', JSON.stringify({ code: res.code, msg: res.msg, dataKeys: res.data ? Object.keys(res.data) : null }))
     throw new Error(`Bitable create failed: ${res.msg || 'no record_id in response'}`)
   }
+
+  invalidateCache(tableKey)
   return record
 }
 
@@ -69,6 +100,7 @@ async function updateRecord(tableKey, recordId, fields) {
     path: { app_token: APP_TOKEN, table_id: tableId, record_id: recordId },
     data: { fields },
   })
+  invalidateCache(tableKey)
   return res.data?.record || res.data
 }
 
@@ -78,6 +110,7 @@ async function deleteRecord(tableKey, recordId) {
   await client.bitable.appTableRecord.delete({
     path: { app_token: APP_TOKEN, table_id: tableId, record_id: recordId },
   })
+  invalidateCache(tableKey)
 }
 
 module.exports = { listRecords, getRecord, createRecord, updateRecord, deleteRecord, TABLE_IDS }

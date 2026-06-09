@@ -1,9 +1,10 @@
 const { listRecords } = require('../feishu/bitable')
 
 async function getDashboardStats() {
-  const projects = await listRecords('projects')
-  const nodes = await listRecords('nodes')
-  const issues = await listRecords('issues')
+  const [projects, nodes] = await Promise.all([
+    listRecords('projects'),
+    listRecords('nodes'),
+  ])
 
   const currentYear = new Date().getFullYear()
   const yearStart = `${currentYear}-01-01`

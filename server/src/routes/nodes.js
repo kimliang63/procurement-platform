@@ -1,6 +1,26 @@
 const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
+const { listRecords } = require('../feishu/bitable')
+
+// Batch fetch nodes for multiple projects (single Bitable query)
+router.get('/batch', async (req, res) => {
+  try {
+    const ids = (req.query.projectIds || '').split(',').filter(Boolean)
+    if (ids.length === 0) return res.json({ data: {} })
+
+    const allNodes = await listRecords('nodes')
+    const result = {}
+    ids.forEach(id => { result[id] = [] })
+    allNodes.forEach(n => {
+      const pid = n.fields?.project_id
+      if (result[pid]) result[pid].push(n)
+    })
+    res.json({ data: result })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
 
 // Helper: check if user owns the project (admin bypasses)
 async function checkProjectOwnership(req, res, next) {

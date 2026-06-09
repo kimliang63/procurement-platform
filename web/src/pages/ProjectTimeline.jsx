@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, Input, Select, Space, Tag, Button, Modal, Form, InputNumber, message } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { getProjects, createProject, getUsers, getProjectNodes } from '../api'
+import { getProjects, createProject, getUsers, getBatchNodes } from '../api'
 import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS } from '../constants/stages'
 
 export default function ProjectTimeline() {
@@ -22,18 +22,12 @@ export default function ProjectTimeline() {
       const res = await getProjects()
       const list = res.data?.data || []
       setProjects(list)
-      // Fetch nodes for each project in parallel
-      const nodeResults = await Promise.allSettled(
-        list.map(p => getProjectNodes(p.record_id).then(r => [p.record_id, r.data?.data || []]))
-      )
-      const nodesMap = {}
-      nodeResults.forEach(r => {
-        if (r.status === 'fulfilled') {
-          const [id, nodes] = r.value
-          nodesMap[id] = nodes
-        }
-      })
-      setProjectNodes(nodesMap)
+      // Batch fetch all nodes in one request
+      if (list.length > 0) {
+        const ids = list.map(p => p.record_id)
+        const nRes = await getBatchNodes(ids)
+        setProjectNodes(nRes.data?.data || {})
+      }
     } catch {}
     setLoading(false)
   }
