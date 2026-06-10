@@ -1,6 +1,6 @@
 const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
-const { getGroupBinding, bindGroup, isProjectOwner } = require('./group')
+const { getGroupBinding, bindGroup, unbindGroup, isProjectOwner } = require('./group')
 const { generateGroupWeeklyReport, generateAdminWeeklyReport } = require('./weekly')
 const { listRecords } = require('../feishu/bitable')
 
@@ -92,6 +92,15 @@ async function handleMessage(event) {
     return { text: '请告诉我要绑定的项目名称，例如：绑定 XX设备采购项目' }
   }
 
+  // 解绑群聊
+  if (text.includes('解绑')) {
+    if (!chatId) {
+      return { text: '解绑功能仅支持群聊使用' }
+    }
+    const result = await unbindGroup(chatId)
+    return { text: result.message || `已解绑项目：${result.projectName}` }
+  }
+
   // Weekly report command
   if (text.includes('周报') || text.includes('weekly')) {
     if (text.includes('管理') || text.includes('admin')) {
@@ -158,41 +167,8 @@ async function handleMessage(event) {
       return { text: dateError }
     }
 
-    // 信息完整 → 始终弹确认卡片（不依赖 LLM 的 message）
-    const trimmed = text.trim()
-    const confirmWords = ['确认', '确定', '是的', '好的', '可以', '没问题', '行']
-    const singleCharConfirm = ['是', '好']
-    const isConfirm = confirmWords.includes(trimmed) || (singleCharConfirm.includes(trimmed) && trimmed.length <= 2)
-
-    // 非确认词 → 弹卡片让用户点按钮
-    if (!isConfirm) {
-      return { card: buildProjectConfirmCard(params) }
-    }
-
-    // 用户确认 → 执行创建
-    if (isConfirm) {
-      try {
-        const data = await callTool('create_project', params)
-        // 自动初始化 15 个默认节点
-        if (data?.record_id) {
-          await callTool('init_project_nodes', { projectId: data.record_id })
-        }
-        // 群聊中创建 → 自动绑定
-        if (chatId && data?.record_id) {
-          try {
-            await bindGroup(chatId, data.fields?.name, senderId)
-          } catch {}
-        }
-        const session = getSession(senderId)
-        if (session) session.currentProjectId = data?.record_id
-        return {
-          text: `项目创建成功！\n名称：${data?.fields?.name}\n编号：${data?.fields?.no}\n负责人：${params.owner}\n所属部门：${params.department}\n预算：${params.budget}万\n当前阶段：需求确认${chatId ? '\n已自动绑定到当前群聊' : ''}`,
-        }
-      } catch (e) {
-        console.error('Create project error:', e.message)
-        return { text: `创建失败：${e.message}` }
-      }
-    }
+    // 信息完整 → 始终弹确认卡片，由卡片按钮执行创建
+    return { card: buildProjectConfirmCard(params) }
   }
 
   // 用户取消（严格匹配）
@@ -359,6 +335,20 @@ async function handleCardAction(action, chatId, senderId) {
 
     if (action.action === 'confirm_project') {
       const params = action.params
+      // 重名检查
+      try {
+        const projects = await callTool('list_projects')
+        const duplicate = projects.find(p => p.fields?.name === params.name)
+        if (duplicate) {
+          if (chatId) {
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `项目名称"${params.name}"已存在（编号：${duplicate.fields?.no}），请换个名称` }) },
+            })
+          }
+          return { success: false, error: 'duplicate_name' }
+        }
+      } catch {}
       // 立即发送"处理中"卡片（无按钮），替换原卡片
       await sendProcessedCard(chatId, '正在创建项目...', 'blue', params, '⏳ 正在创建项目，请稍候...')
       try {

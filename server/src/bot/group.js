@@ -31,10 +31,20 @@ async function bindGroup(chatId, projectName, senderId) {
   return { success: true, project }
 }
 
+// Unbind group from project
+async function unbindGroup(chatId) {
+  const binding = await getGroupBinding(chatId)
+  if (!binding) {
+    return { success: false, message: '当前群未绑定任何项目' }
+  }
+  await callTool('delete_group', { groupId: binding.record_id })
+  return { success: true, projectName: binding.fields?.project_name }
+}
+
 // Check if user is project owner
 async function isProjectOwner(projectId, userId) {
   const project = await callTool('get_project', { projectId })
   return project?.fields?.owner === userId
 }
 
-module.exports = { getGroupBinding, bindGroup, isProjectOwner }
+module.exports = { getGroupBinding, bindGroup, unbindGroup, isProjectOwner }

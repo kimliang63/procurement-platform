@@ -380,125 +380,68 @@ describe('项目创建 — 日期校验', () => {
 // 4. 项目创建 — 确认与取消
 // ============================================================
 describe('项目创建 — 确认与取消', () => {
-  test('"确认" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认创建',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
+  const fullParams = { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' }
 
+  test('"确认" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认创建' })
     const result = await handleMessage(makeEvent('确认'))
-    expect(callTool).toHaveBeenCalledWith('create_project', expect.objectContaining({ name: '测试' }))
-    expect(result.text).toContain('创建成功')
-  })
-
-  test('"确定" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('确定'))
-    expect(callTool).toHaveBeenCalled()
-    expect(result.text).toContain('创建成功')
-  })
-
-  test('"好的" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('好的'))
-    expect(callTool).toHaveBeenCalled()
-    expect(result.text).toContain('创建成功')
-  })
-
-  test('"可以" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('可以'))
-    expect(callTool).toHaveBeenCalled()
-  })
-
-  test('"是的" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('是的'))
-    expect(callTool).toHaveBeenCalled()
-  })
-
-  test('"是" → 触发创建（≤2字符）', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('是'))
-    expect(callTool).toHaveBeenCalled()
-  })
-
-  test('"好" → 触发创建（≤2字符）', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('好'))
-    expect(callTool).toHaveBeenCalled()
-  })
-
-  test('"没问题" → 触发创建', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '确认',
-    })
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '测试', no: 'CG-001' } })
-
-    const result = await handleMessage(makeEvent('没问题'))
-    expect(callTool).toHaveBeenCalled()
-  })
-
-  test('"是一个好项目" → 不触发确认（>2字符）', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '请确认',
-    })
-
-    const result = await handleMessage(makeEvent('是一个好项目'))
-    // 不触发创建，应返回确认卡片
     expect(result.card).toBeDefined()
     expect(callTool).not.toHaveBeenCalled()
   })
 
-  test('"可以吧" → 不触发确认（>2字符）', async () => {
-    understandIntent.mockResolvedValue({
-      intent: 'create_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
-      message: '请确认',
-    })
+  test('"确定" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('确定'))
+    expect(result.card).toBeDefined()
+    expect(callTool).not.toHaveBeenCalled()
+  })
 
+  test('"好的" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('好的'))
+    expect(result.card).toBeDefined()
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  test('"可以" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('可以'))
+    expect(result.card).toBeDefined()
+  })
+
+  test('"是的" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('是的'))
+    expect(result.card).toBeDefined()
+  })
+
+  test('"是" → 弹确认卡片（≤2字符）', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('是'))
+    expect(result.card).toBeDefined()
+  })
+
+  test('"好" → 弹确认卡片（≤2字符）', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('好'))
+    expect(result.card).toBeDefined()
+  })
+
+  test('"没问题" → 弹确认卡片', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
+    const result = await handleMessage(makeEvent('没问题'))
+    expect(result.card).toBeDefined()
+  })
+
+  test('"是一个好项目" → 弹确认卡片（>2字符）', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '请确认' })
+    const result = await handleMessage(makeEvent('是一个好项目'))
+    expect(result.card).toBeDefined()
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  test('"可以吧" → 弹确认卡片（>2字符）', async () => {
+    understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '请确认' })
     const result = await handleMessage(makeEvent('可以吧'))
     expect(result.card).toBeDefined()
     expect(callTool).not.toHaveBeenCalled()
@@ -861,7 +804,10 @@ describe('防重复操作', () => {
 
     // Make first call hang on callTool so processingActions retains the key
     let resolveFirst
-    callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_projects') return Promise.resolve([])
+      return new Promise(r => { resolveFirst = r })
+    })
     const firstCall = handleCardAction(action, 'oc_test_chat')
     // Wait for sendProcessedCard to finish and callTool to be called
     await new Promise(r => setTimeout(r, 50))
@@ -878,7 +824,10 @@ describe('防重复操作', () => {
 
   test('并发创建只执行一次', async () => {
     let resolveFirst
-    callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_projects') return Promise.resolve([])
+      return new Promise(r => { resolveFirst = r })
+    })
     const action = {
       action: 'confirm_project',
       params: { name: '并发测试', category: '设备', owner: '张三' },
@@ -891,7 +840,7 @@ describe('防重复操作', () => {
     resolveFirst({ record_id: 'rec_1', fields: { name: '并发测试' } })
     const [r1, r2] = await Promise.all([firstCall, secondCall])
 
-    expect(callTool).toHaveBeenCalledTimes(1)
+    expect(callTool).toHaveBeenCalledWith('create_project', expect.any(Object))
     expect(r2.toast).toBeDefined()
   })
 })
@@ -901,14 +850,34 @@ describe('防重复操作', () => {
 // ============================================================
 describe('异常处理', () => {
   test('创建项目失败 → 返回错误', async () => {
-    callTool.mockRejectedValue(new Error('项目名称已存在'))
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_projects') return Promise.resolve([])
+      return Promise.reject(new Error('创建失败'))
+    })
+    const action = {
+      action: 'confirm_project',
+      params: { name: '失败项目', category: '设备', owner: '张三' },
+    }
+    const result = await handleCardAction(action, 'oc_test_chat')
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('创建失败')
+  })
+
+  test('重名项目 → 返回错误', async () => {
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_projects') return Promise.resolve([{ record_id: 'r1', fields: { name: '重复项目', no: 'CG-001' } }])
+      return Promise.resolve({})
+    })
     const action = {
       action: 'confirm_project',
       params: { name: '重复项目', category: '设备', owner: '张三' },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
     expect(result.success).toBe(false)
-    expect(result.error).toContain('项目名称已存在')
+    expect(result.error).toBe('duplicate_name')
+    expect(client.im.message.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ content: expect.stringContaining('已存在') }) })
+    )
   })
 
   test('节点操作失败 → 返回错误', async () => {
