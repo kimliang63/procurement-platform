@@ -6,21 +6,24 @@ import ProjectTimeline from '../ProjectTimeline'
 vi.mock('../../api', () => ({
   getProjects: vi.fn(),
   createProject: vi.fn(),
+  deleteProject: vi.fn(),
   getUsers: vi.fn(),
+  getBatchNodes: vi.fn(),
+  getIssues: vi.fn(),
 }))
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-const { getProjects, getUsers } = await import('../../api')
+const { getProjects, getUsers, getBatchNodes, getIssues } = await import('../../api')
 
 const mockProjects = {
   data: {
     data: [
-      { record_id: 'r1', fields: { name: '项目A', no: 'CG-2026-001', owner: '张三', status: '进行中', bu: 'FBU' } },
-      { record_id: 'r2', fields: { name: '项目B', no: 'CG-2026-002', owner: '李四', status: '项目完成', bu: 'LBU' } },
-      { record_id: 'r3', fields: { name: '项目C', no: 'CG-2026-003', owner: '张三', status: '项目暂停', bu: 'FBU' } },
+      { record_id: 'r1', fields: { name: '项目A', no: 'CG-2026-001', owner: '张三', status: '进行中', budget: 100 } },
+      { record_id: 'r2', fields: { name: '项目B', no: 'CG-2026-002', owner: '李四', status: '项目完成', budget: 200 } },
+      { record_id: 'r3', fields: { name: '项目C', no: 'CG-2026-003', owner: '张三', status: '项目暂停', budget: 50 } },
     ],
   },
 }
@@ -29,11 +32,25 @@ const mockUsers = {
   data: { data: [{ fields: { name: '张三' } }, { fields: { name: '李四' } }] },
 }
 
+const mockNodes = {
+  data: {
+    data: {
+      r1: [{ record_id: 'n1', fields: { stage_key: 'requirement', status: 'completed', actual_date: '2026-01-15' } }],
+      r2: [{ record_id: 'n2', fields: { stage_key: 'requirement', status: 'completed', actual_date: '2026-01-10' } }],
+      r3: [],
+    },
+  },
+}
+
+const mockIssues = { data: { data: [] } }
+
 describe('ProjectTimeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getProjects.mockResolvedValue(mockProjects)
     getUsers.mockResolvedValue(mockUsers)
+    getBatchNodes.mockResolvedValue(mockNodes)
+    getIssues.mockResolvedValue(mockIssues)
   })
 
   test('renders page title and create button', async () => {
@@ -64,9 +81,9 @@ describe('ProjectTimeline', () => {
   test('renders project owners', async () => {
     render(<ProjectTimeline />)
     await waitFor(() => {
-      expect(screen.getAllByText('张三').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText(/张三/).length).toBeGreaterThanOrEqual(1)
     })
-    expect(screen.getAllByText('李四').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/李四/).length).toBeGreaterThanOrEqual(1)
   })
 
   test('renders status tags', async () => {
@@ -92,14 +109,12 @@ describe('ProjectTimeline', () => {
     })
   })
 
-  test('renders timeline bar for each project (15 segments per project)', async () => {
-    const { container } = render(<ProjectTimeline />)
+  test('renders timeline nodes for each project', async () => {
+    render(<ProjectTimeline />)
     await waitFor(() => {
       expect(screen.getByText('项目A')).toBeInTheDocument()
     })
-    // Each project card has a timeline bar with 15 segments (title attributes from STAGE_MAP)
-    const timelineSegments = container.querySelectorAll('[title="需求确认"]')
-    // 3 projects × 1 segment each with title="需求确认"
-    expect(timelineSegments.length).toBe(3)
+    // Each project card has node labels from STAGE_MAP
+    expect(screen.getAllByText('需求确认').length).toBe(3)
   })
 })

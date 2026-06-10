@@ -7,6 +7,12 @@ jest.mock('../../feishu/client', () => ({
   im: { message: { create: jest.fn().mockResolvedValue({}) } },
 }))
 
+jest.mock('../group', () => ({
+  getGroupBinding: jest.fn().mockResolvedValue(null),
+  bindGroup: jest.fn().mockResolvedValue({ message: '绑定成功' }),
+  isProjectOwner: jest.fn().mockResolvedValue(true),
+}))
+
 jest.mock('../../mcp', () => ({
   callTool: jest.fn(),
   STAGE_MAP: {
@@ -32,7 +38,7 @@ jest.mock('../llm', () => ({
   getSession: jest.fn(),
 }))
 
-const { handleMessage, handleCardAction } = require('../index')
+const { handleMessage, handleCardAction, clearProcessingActions } = require('../index')
 const { callTool } = require('../../mcp')
 const { understandIntent, getSession } = require('../llm')
 const client = require('../../feishu/client')
@@ -46,6 +52,7 @@ function makeEvent(text, senderId = 'ou_test_user') {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  clearProcessingActions()
   getSession.mockReturnValue({ currentProjectId: 'rec_proj', history: [], pendingAction: null })
   // 默认：list_projects 返回空（无重名），其他返回成功
   callTool.mockImplementation((tool) => {
@@ -552,7 +559,7 @@ describe('UAT 5. 防重复点击', () => {
     let resolveFirst
     callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
     const firstCall = handleCardAction(action, 'oc_test_chat')
-    await new Promise(r => setTimeout(r, 5))
+    await new Promise(r => setTimeout(r, 50))
 
     const result = await handleCardAction(action, 'oc_test_chat')
     expect(result.toast).toBeDefined()
@@ -563,22 +570,30 @@ describe('UAT 5. 防重复点击', () => {
   })
 
   test('5.2：快速连续点击3次 → 只执行1次', async () => {
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '并发' } })
+    callTool.mockClear()
+    let resolveFirst
+    callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
     const action = {
       action: 'confirm_project',
       params: { name: '并发', category: '设备', owner: '张三' },
     }
 
-    const [r1, r2, r3] = await Promise.all([
-      handleCardAction(action, 'oc_test_chat'),
-      handleCardAction(action, 'oc_test_chat'),
-      handleCardAction(action, 'oc_test_chat'),
-    ])
+    const firstCall = handleCardAction(action, 'oc_test_chat')
+    await new Promise(r => setTimeout(r, 50))
+    const secondCall = handleCardAction(action, 'oc_test_chat')
+    await new Promise(r => setTimeout(r, 10))
+    const thirdCall = handleCardAction(action, 'oc_test_chat')
+
+    resolveFirst({ record_id: 'rec_1', fields: { name: '并发' } })
+    const [r1, r2, r3] = await Promise.all([firstCall, secondCall, thirdCall])
 
     expect(callTool).toHaveBeenCalledTimes(1)
+    expect(r2.toast).toBeDefined()
+    expect(r3.toast).toBeDefined()
   })
 
   test('5.3：第一次完成后再次点击 → 可以正常执行', async () => {
+    callTool.mockClear()
     callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '再次' } })
     const action = {
       action: 'confirm_project',
@@ -588,7 +603,6 @@ describe('UAT 5. 防重复点击', () => {
     await handleCardAction(action, 'oc_test_chat')
     expect(callTool).toHaveBeenCalledTimes(1)
 
-    // 第二次点击
     await handleCardAction(action, 'oc_test_chat')
     expect(callTool).toHaveBeenCalledTimes(2)
   })

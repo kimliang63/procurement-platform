@@ -7,6 +7,12 @@ jest.mock('../../feishu/client', () => ({
   im: { message: { create: jest.fn().mockResolvedValue({}) } },
 }))
 
+jest.mock('../group', () => ({
+  getGroupBinding: jest.fn().mockResolvedValue(null),
+  bindGroup: jest.fn().mockResolvedValue({ message: '绑定成功' }),
+  isProjectOwner: jest.fn().mockResolvedValue(true),
+}))
+
 jest.mock('../../mcp', () => ({
   callTool: jest.fn(),
   STAGE_MAP: {
@@ -32,7 +38,7 @@ jest.mock('../llm', () => ({
   getSession: jest.fn(),
 }))
 
-const { handleMessage, handleCardAction, normalizeBudget, validateDates } = require('../index')
+const { handleMessage, handleCardAction, normalizeBudget, validateDates, clearProcessingActions } = require('../index')
 const { callTool } = require('../../mcp')
 const { understandIntent, getSession } = require('../llm')
 const client = require('../../feishu/client')
@@ -46,6 +52,7 @@ function makeEvent(text, senderId = 'ou_test_user') {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  clearProcessingActions()
   // 默认返回带 projectId 的 session，避免 name lookup
   getSession.mockReturnValue({ currentProjectId: 'rec_proj', history: [], pendingAction: null })
   // 默认 callTool：list_projects 返回空（无重名），其他返回成功
@@ -852,32 +859,40 @@ describe('防重复操作', () => {
       params: { name: '测试重复', category: '设备', owner: '张三' },
     }
 
+    // Make first call hang on callTool so processingActions retains the key
     let resolveFirst
     callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
     const firstCall = handleCardAction(action, 'oc_test_chat')
-    await new Promise(r => setTimeout(r, 5))
+    // Wait for sendProcessedCard to finish and callTool to be called
+    await new Promise(r => setTimeout(r, 50))
 
+    // Second call should be blocked by processingActions
     const result = await handleCardAction(action, 'oc_test_chat')
     expect(result.toast).toBeDefined()
     expect(result.toast.content).toContain('正在处理')
 
+    // Resolve the first call to let it complete
     resolveFirst({ record_id: 'rec_1', fields: { name: '测试重复' } })
     await firstCall
   })
 
   test('并发创建只执行一次', async () => {
-    callTool.mockResolvedValue({ record_id: 'rec_1', fields: { name: '并发测试' } })
+    let resolveFirst
+    callTool.mockImplementation(() => new Promise(r => { resolveFirst = r }))
     const action = {
       action: 'confirm_project',
       params: { name: '并发测试', category: '设备', owner: '张三' },
     }
 
-    const [r1, r2] = await Promise.all([
-      handleCardAction(action, 'oc_test_chat'),
-      handleCardAction(action, 'oc_test_chat'),
-    ])
+    const firstCall = handleCardAction(action, 'oc_test_chat')
+    await new Promise(r => setTimeout(r, 50))
+    const secondCall = handleCardAction(action, 'oc_test_chat')
+
+    resolveFirst({ record_id: 'rec_1', fields: { name: '并发测试' } })
+    const [r1, r2] = await Promise.all([firstCall, secondCall])
 
     expect(callTool).toHaveBeenCalledTimes(1)
+    expect(r2.toast).toBeDefined()
   })
 })
 

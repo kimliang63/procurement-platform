@@ -437,4 +437,8 @@ async function handleCardAction(action, chatId, senderId) {
   }
 }
 
-module.exports = { handleMessage, handleCardAction, normalizeBudget, validateDates }
+function clearProcessingActions() {
+  processingActions.clear()
+}
+
+module.exports = { handleMessage, handleCardAction, normalizeBudget, validateDates, clearProcessingActions }
