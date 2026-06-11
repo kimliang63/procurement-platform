@@ -143,7 +143,7 @@ app.post('/webhook/bot', async (req, res) => {
     if (messageId) {
       client.im.message_reaction.create({
         path: { message_id: messageId },
-        data: { reaction_type: { emoji_type: 'THUMBSUP' } },
+        data: { reaction_type: { emoji_type: 'OnIt' } },
       }).catch(() => {})
     }
 
