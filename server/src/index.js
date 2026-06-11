@@ -163,45 +163,40 @@ app.post('/webhook/bot', async (req, res) => {
   res.json({ success: true })
 })
 
-// Card Action Webhook - 处理 card.action.trigger 事件
+// Card Action Webhook - 与 /webhook/bot 合并，避免双重处理
 app.post('/webhook/card', async (req, res) => {
   const { type, challenge, header, event } = req.body
-  console.log(`[${new Date().toISOString()}] /webhook/card:`, header?.event_type || type || 'unknown')
 
   // URL验证
   if (type === 'url_verification') {
     return res.json({ challenge })
   }
 
-  console.log('Card webhook received:', JSON.stringify({ type, event_type: header?.event_type }))
+  // 事件去重（复用 /webhook/bot 的 processedEvents）
+  const eventId = header?.event_id
+  if (eventId && processedEvents.has(eventId)) {
+    return res.json({ success: true })
+  }
+  if (eventId) {
+    processedEvents.add(eventId)
+    setTimeout(() => processedEvents.delete(eventId), 300000)
+  }
 
   // 卡片回传交互事件
   if (header?.event_type === 'card.action.trigger') {
-    // 事件去重
-    const eventId = header?.event_id
-    if (eventId && processedEvents.has(eventId)) {
-      return res.json({ success: true })
-    }
-    if (eventId) {
-      processedEvents.add(eventId)
-      setTimeout(() => processedEvents.delete(eventId), 300000)
-    }
-
     const action = event?.action
     const chatId = event?.context?.open_chat_id
     const operatorId = event?.operator?.open_id
-    console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
+    console.log(`[${new Date().toISOString()}] /webhook/card action:`, JSON.stringify(action), 'chat:', chatId)
 
     if (action?.value) {
-      // 先返回响应（3秒内），后台异步处理
       handleCardAction(action.value, chatId, operatorId).catch(e => {
         console.error('Card action async error:', e.message)
       })
     }
-    return res.json({ success: true })
   }
 
-  res.json({ success: true })
+  return res.json({ success: true })
 })
 
 // 静态文件服务（Vercel 生产环境）

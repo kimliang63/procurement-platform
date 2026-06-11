@@ -386,21 +386,21 @@ describe('项目创建 — 确认与取消', () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认创建' })
     const result = await handleMessage(makeEvent('确认'))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   test('"确定" → 弹确认卡片', async () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
     const result = await handleMessage(makeEvent('确定'))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   test('"好的" → 弹确认卡片', async () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认' })
     const result = await handleMessage(makeEvent('好的'))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   test('"可以" → 弹确认卡片', async () => {
@@ -437,14 +437,14 @@ describe('项目创建 — 确认与取消', () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '请确认' })
     const result = await handleMessage(makeEvent('是一个好项目'))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   test('"可以吧" → 弹确认卡片（>2字符）', async () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '请确认' })
     const result = await handleMessage(makeEvent('可以吧'))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   test('"取消" → 取消创建', async () => {

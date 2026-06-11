@@ -291,7 +291,7 @@ describe('UAT 4. 项目创建 — 确认与取消', () => {
 
     const result = await handleMessage(makeEvent(input))
     expect(result.card).toBeDefined()
-    expect(callTool).not.toHaveBeenCalled()
+    expect(callTool).not.toHaveBeenCalledWith('create_project', expect.anything())
   })
 
   test('4.10：点击卡片"确认创建"按钮 → 触发创建', async () => {

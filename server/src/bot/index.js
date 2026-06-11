@@ -167,6 +167,17 @@ async function handleMessage(event) {
       return { text: dateError }
     }
 
+    // 信息完整 → 先检查重名，再弹确认卡片
+    if (params.name) {
+      try {
+        const projects = await callTool('list_projects')
+        const duplicate = projects.find(p => p.fields?.name === params.name)
+        if (duplicate) {
+          return { text: `项目名称"${params.name}"已存在（编号：${duplicate.fields?.no}），请换个名称` }
+        }
+      } catch {}
+    }
+
     // 信息完整 → 始终弹确认卡片，由卡片按钮执行创建
     return { card: buildProjectConfirmCard(params) }
   }
