@@ -144,7 +144,8 @@ app.post('/webhook/bot', async (req, res) => {
       client.im.message_reaction.create({
         path: { message_id: messageId },
         data: { reaction_type: { emoji_type: 'OnIt' } },
-      }).catch(() => {})
+      }).then(r => console.log('Reaction added:', r.code === 0 ? 'OK' : r.msg))
+        .catch(e => console.error('Reaction failed:', e.response?.data?.msg || e.message))
     }
 
     // fire-and-forget: 不阻塞 webhook 响应
