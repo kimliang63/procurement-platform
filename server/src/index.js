@@ -116,6 +116,7 @@ app.post('/webhook/bot', async (req, res) => {
   // 处理消息
   if (event?.message?.message_type === 'text') {
     const chatId = event.message?.chat_id
+    const messageId = event.message?.message_id
     console.log(`[${new Date().toISOString()}] Message received:`, event.message?.content?.substring(0, 100), 'chat:', chatId)
     const chatType = event.message?.chat_type // "group" or "p2p"
     const senderId = event.sender?.sender_id?.open_id
@@ -138,25 +139,25 @@ app.post('/webhook/bot', async (req, res) => {
       markUserActiveInChat(chatId, senderId)
     }
 
-    const reply = await handleMessage(event)
+    // 立即加表情回应，表示收到消息
+    if (messageId) {
+      client.im.message_reaction.create({
+        path: { message_id: messageId },
+        data: { reaction_type: { emoji_type: 'THUMBSUP' } },
+      }).catch(() => {})
+    }
 
-    if (reply && chatId) {
-      try {
+    // fire-and-forget: 不阻塞 webhook 响应
+    handleMessage(event).then(reply => {
+      if (reply && chatId) {
         const msgType = reply.card ? 'interactive' : 'text'
         const content = reply.card ? JSON.stringify(reply.card) : JSON.stringify({ text: reply.text })
-        await client.im.message.create({
+        client.im.message.create({
           params: { receive_id_type: 'chat_id' },
-          data: {
-            receive_id: chatId,
-            msg_type: msgType,
-            content,
-          },
-        })
-        console.log('Reply sent to chat:', chatId, msgType)
-      } catch (e) {
-        console.error('Failed to send reply:', e.message)
+          data: { receive_id: chatId, msg_type: msgType, content },
+        }).catch(e => console.error('Failed to send reply:', e.message))
       }
-    }
+    }).catch(e => console.error('Message handling error:', e.message))
   }
 
   res.json({ success: true })
