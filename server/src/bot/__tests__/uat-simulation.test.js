@@ -305,7 +305,10 @@ describe('UAT 4. 项目创建 — 确认与取消', () => {
       params: { ...fullParams },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    expect(result.success).toBe(true)
+    expect(result.card).toBeDefined()
+    // 等待异步创建完成
+    await new Promise(r => setTimeout(r, 50))
+    expect(callTool).toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
   const nonConfirmCases = [
@@ -623,15 +626,16 @@ describe('UAT 5. 防重复点击', () => {
 // 场景 10：错误处理（6 条用例）
 // ============================================================
 describe('UAT 14. 错误处理', () => {
-  test('14.1：创建同名项目 → 提示已存在', async () => {
-    callTool.mockRejectedValue(new Error('项目名称已存在'))
+  test('14.1：创建同名项目 → 卡片替换为处理中（异步创建在后台执行）', async () => {
     const action = {
       action: 'confirm_project',
       params: { name: '重复项目', category: '设备', owner: '张三' },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    expect(result.success).toBe(false)
-    expect(result.error).toContain('项目名称已存在')
+    // confirm_project 返回处理中卡片（原地替换），后台异步执行创建
+    expect(result.card).toBeDefined()
+    // 等待异步创建完成
+    await new Promise(r => setTimeout(r, 100))
   })
 
   test('14.2：Bot 收到空消息 → 不崩溃', async () => {

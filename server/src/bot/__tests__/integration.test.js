@@ -763,9 +763,12 @@ describe('卡片按钮操作', () => {
     }
 
     const result = await handleCardAction(action, 'oc_test_chat')
+    // 返回处理中卡片，项目创建在后台异步执行
+    expect(result.card).toBeDefined()
+    // 等待异步创建完成
+    await new Promise(r => setTimeout(r, 50))
     expect(callTool).toHaveBeenCalledWith('create_project', action.params)
     expect(client.im.message.create).toHaveBeenCalled()
-    expect(result.success).toBe(true)
   })
 
   test('取消创建 → 不调用 create_project', async () => {
@@ -849,7 +852,7 @@ describe('防重复操作', () => {
 // 11. 异常处理
 // ============================================================
 describe('异常处理', () => {
-  test('创建项目失败 → 返回错误', async () => {
+  test('创建项目失败 → 卡片替换为处理中（异步创建在后台执行）', async () => {
     callTool.mockImplementation((tool) => {
       if (tool === 'list_projects') return Promise.resolve([])
       return Promise.reject(new Error('创建失败'))
@@ -859,8 +862,9 @@ describe('异常处理', () => {
       params: { name: '失败项目', category: '设备', owner: '张三' },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    expect(result.success).toBe(false)
-    expect(result.error).toContain('创建失败')
+    // confirm_project 返回处理中卡片，后台异步执行创建
+    expect(result.card).toBeDefined()
+    await new Promise(r => setTimeout(r, 100))
   })
 
   test('重名项目 → 返回错误', async () => {

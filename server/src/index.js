@@ -105,13 +105,16 @@ app.post('/webhook/bot', async (req, res) => {
     console.log(`[${new Date().toISOString()}] Card action received:`, JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
-      // 先返回响应（3秒内），后台异步处理
-      // 飞书要求卡片回调 3 秒内响应，返回空对象表示不更新原卡片
-      handleCardAction(action.value, chatId, operatorId).catch(e => {
-        console.error('Card action async error:', e.message)
-      })
+      try {
+        const result = await handleCardAction(action.value, chatId, operatorId)
+        // 返回卡片让飞书原地替换，或返回空对象
+        if (result?.card) {
+          return res.json(result.card)
+        }
+      } catch (e) {
+        console.error('Card action error:', e.message)
+      }
     }
-    // 飞书卡片回调要求返回 {} 或新卡片 JSON，不能返回自定义字段
     return res.json({})
   }
 
@@ -191,9 +194,14 @@ app.post('/webhook/card', async (req, res) => {
     console.log(`[${new Date().toISOString()}] /webhook/card action:`, JSON.stringify(action), 'chat:', chatId)
 
     if (action?.value) {
-      handleCardAction(action.value, chatId, operatorId).catch(e => {
-        console.error('Card action async error:', e.message)
-      })
+      try {
+        const result = await handleCardAction(action.value, chatId, operatorId)
+        if (result?.card) {
+          return res.json(result.card)
+        }
+      } catch (e) {
+        console.error('Card action error:', e.message)
+      }
     }
   }
 

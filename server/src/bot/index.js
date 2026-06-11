@@ -333,18 +333,9 @@ async function handleCardAction(action, chatId, senderId) {
   }
   processingActions.add(key)
 
-  try {
-    // Permission check for node operations
-    if (action.action === 'confirm_node' || action.action === 'mark_abnormal') {
-      if (senderId && action.project_id) {
-        const isOwner = await isProjectOwner(action.project_id, senderId)
-        if (!isOwner) {
-          return { toast: { content: '仅负责人可操作', type: 'warning' } }
-        }
-      }
-    }
-
-    if (action.action === 'confirm_project') {
+  // confirm_project 单独处理：异步创建项目，返回处理中卡片
+  if (action.action === 'confirm_project') {
+    try {
       const params = action.params
       // 重名检查
       try {
@@ -360,47 +351,67 @@ async function handleCardAction(action, chatId, senderId) {
           return { success: false, error: 'duplicate_name' }
         }
       } catch {}
-      // 立即发送"处理中"卡片（无按钮），替换原卡片
-      try {
-        await sendProcessedCard(chatId, '正在创建项目...', 'blue', params, '⏳ 正在创建项目，请稍候...')
-      } catch (e) {
-        console.error('Failed to send processing card:', e.message)
-      }
-      try {
-        const data = await callTool('create_project', params)
-        if (!data || !data.record_id) {
-          throw new Error('项目创建失败：未返回有效数据')
-        }
-        // 群聊中创建 → 自动绑定
-        if (chatId && data.record_id) {
-          try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
-        }
-        // 发送成功卡片
-        if (chatId) {
-          try {
-            const card = buildProjectCreatedCard(data, params)
-            await client.im.message.create({
-              params: { receive_id_type: 'chat_id' },
-              data: { receive_id: chatId, msg_type: 'interactive', content: JSON.stringify(card) },
-            })
-          } catch (e) {
-            console.error('Failed to send success card:', e.message)
+      // 返回"处理中"卡片，由回调响应原地替换原卡片
+      const processingCard = buildCardProcessed('正在创建项目...', 'blue', [
+        { is_short: true, text: { tag: 'lark_md', content: `**项目名称**\n${params.name || '—'}` } },
+        { is_short: true, text: { tag: 'lark_md', content: `**采购品类**\n${params.category || '—'}` } },
+        { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params.owner || '—'}` } },
+        { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params.department || '—'}` } },
+        { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params.budget || '—'}万` } },
+        { is_short: true, text: { tag: 'lark_md', content: `**计划周期**\n${params.planStart || '—'} ~ ${params.planEnd || '—'}` } },
+      ], '⏳ 正在创建项目，请稍候...')
+      // 后台异步创建项目
+      ;(async () => {
+        try {
+          const data = await callTool('create_project', params)
+          if (!data || !data.record_id) {
+            throw new Error('项目创建失败：未返回有效数据')
           }
-        }
-        return { success: true }
-      } catch (e) {
-        console.error('Create project error:', e.message)
-        if (chatId) {
-          try {
-            await client.im.message.create({
-              params: { receive_id_type: 'chat_id' },
-              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `创建失败：${e.message}` }) },
-            })
-          } catch (msgErr) {
-            console.error('Failed to send error message:', msgErr.message)
+          if (chatId && data.record_id) {
+            try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
           }
+          if (chatId) {
+            try {
+              const card = buildProjectCreatedCard(data, params)
+              await client.im.message.create({
+                params: { receive_id_type: 'chat_id' },
+                data: { receive_id: chatId, msg_type: 'interactive', content: JSON.stringify(card) },
+              })
+            } catch (e) {
+              console.error('Failed to send success card:', e.message)
+            }
+          }
+        } catch (e) {
+          console.error('Create project error:', e.message)
+          if (chatId) {
+            try {
+              await client.im.message.create({
+                params: { receive_id_type: 'chat_id' },
+                data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `创建失败：${e.message}` }) },
+              })
+            } catch (msgErr) {
+              console.error('Failed to send error message:', msgErr.message)
+            }
+          }
+        } finally {
+          processingActions.delete(key)
         }
-        return { success: false, error: e.message }
+      })()
+      return { card: processingCard }
+    } catch (e) {
+      processingActions.delete(key)
+      return { success: false, error: e.message }
+    }
+  }
+
+  try {
+    // Permission check for node operations
+    if (action.action === 'confirm_node' || action.action === 'mark_abnormal') {
+      if (senderId && action.project_id) {
+        const isOwner = await isProjectOwner(action.project_id, senderId)
+        if (!isOwner) {
+          return { toast: { content: '仅负责人可操作', type: 'warning' } }
+        }
       }
     }
 
