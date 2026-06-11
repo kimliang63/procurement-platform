@@ -75,6 +75,7 @@ setInterval(() => {
 
 app.post('/webhook/bot', async (req, res) => {
   const { type, challenge, event, header } = req.body
+  console.log(`[${new Date().toISOString()}] /webhook/bot:`, header?.event_type || type || 'unknown')
 
   if (type === 'url_verification') {
     return res.json({ challenge })
@@ -91,12 +92,17 @@ app.post('/webhook/bot', async (req, res) => {
     setTimeout(() => processedEvents.delete(eventId), 300000)
   }
 
+  // 未知事件类型
+  if (header?.event_type && header.event_type !== 'card.action.trigger') {
+    console.log(`[${new Date().toISOString()}] Unknown event type:`, header.event_type)
+  }
+
   // 处理卡片回调
   if (header?.event_type === 'card.action.trigger') {
     const action = event?.action
     const chatId = event?.context?.open_chat_id
     const operatorId = event?.operator?.open_id
-    console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
+    console.log(`[${new Date().toISOString()}] Card action received:`, JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
       // 先返回响应（3秒内），后台异步处理
@@ -111,6 +117,7 @@ app.post('/webhook/bot', async (req, res) => {
   // 处理消息
   if (event?.message?.message_type === 'text') {
     const chatId = event.message?.chat_id
+    console.log(`[${new Date().toISOString()}] Message received:`, event.message?.content?.substring(0, 100), 'chat:', chatId)
     const chatType = event.message?.chat_type // "group" or "p2p"
     const senderId = event.sender?.sender_id?.open_id
     const mentions = event.message?.mentions || []
@@ -159,6 +166,7 @@ app.post('/webhook/bot', async (req, res) => {
 // Card Action Webhook - 处理 card.action.trigger 事件
 app.post('/webhook/card', async (req, res) => {
   const { type, challenge, header, event } = req.body
+  console.log(`[${new Date().toISOString()}] /webhook/card:`, header?.event_type || type || 'unknown')
 
   // URL验证
   if (type === 'url_verification') {
