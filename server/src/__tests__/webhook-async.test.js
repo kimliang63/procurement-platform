@@ -98,7 +98,7 @@ beforeEach(() => {
           console.error('Card action async error:', e.message)
         })
       }
-      return res.json({ success: true })
+      return res.json({})
     }
 
     if (event?.message?.message_type === 'text') {
@@ -136,7 +136,7 @@ describe('卡片回调异步处理', () => {
     const elapsed = Date.now() - startTime
 
     expect(res.status).toBe(200)
-    expect(res.body.success).toBe(true)
+    expect(res.status).toBe(200)
     // webhook 应在 500ms 内返回（远小于 3 秒超时）
     expect(elapsed).toBeLessThan(500)
   })
@@ -154,8 +154,9 @@ describe('卡片回调异步处理', () => {
     const res1 = await request(app).post('/webhook/bot').send(payload)
     const res2 = await request(app).post('/webhook/bot').send(payload)
 
-    expect(res1.body.success).toBe(true)
-    expect(res2.body.success).toBe(true)
+    expect(res1.status).toBe(200)
+    // 第二次被去重拦截，返回 { success: true }
+    expect(res2.status).toBe(200)
   })
 
   test('URL 验证正常响应', async () => {

@@ -106,12 +106,13 @@ app.post('/webhook/bot', async (req, res) => {
 
     if (action?.value) {
       // 先返回响应（3秒内），后台异步处理
-      // 飞书要求卡片回调 3 秒内响应，否则用户端显示"出错了，请稍后重试"
+      // 飞书要求卡片回调 3 秒内响应，返回空对象表示不更新原卡片
       handleCardAction(action.value, chatId, operatorId).catch(e => {
         console.error('Card action async error:', e.message)
       })
     }
-    return res.json({ success: true })
+    // 飞书卡片回调要求返回 {} 或新卡片 JSON，不能返回自定义字段
+    return res.json({})
   }
 
   // 处理消息
@@ -196,7 +197,7 @@ app.post('/webhook/card', async (req, res) => {
     }
   }
 
-  return res.json({ success: true })
+  return res.json({})
 })
 
 // 静态文件服务（Vercel 生产环境）
