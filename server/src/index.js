@@ -99,12 +99,11 @@ app.post('/webhook/bot', async (req, res) => {
     console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
-      const result = await handleCardAction(action.value, chatId, operatorId)
-
-      // handleCardAction 已经发送了回复消息，这里只返回 toast
-      if (result?.toast) {
-        return res.json({ toast: result.toast })
-      }
+      // 先返回响应（3秒内），后台异步处理
+      // 飞书要求卡片回调 3 秒内响应，否则用户端显示"出错了，请稍后重试"
+      handleCardAction(action.value, chatId, operatorId).catch(e => {
+        console.error('Card action async error:', e.message)
+      })
     }
     return res.json({ success: true })
   }
@@ -186,14 +185,10 @@ app.post('/webhook/card', async (req, res) => {
     console.log('Card action:', JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
-      try {
-        const result = await handleCardAction(action.value, chatId, operatorId)
-        if (result?.toast) {
-          return res.json({ toast: result.toast })
-        }
-      } catch (e) {
-        console.error('Card action error:', e.message)
-      }
+      // 先返回响应（3秒内），后台异步处理
+      handleCardAction(action.value, chatId, operatorId).catch(e => {
+        console.error('Card action async error:', e.message)
+      })
     }
     return res.json({ success: true })
   }
