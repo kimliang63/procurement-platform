@@ -350,7 +350,11 @@ async function handleCardAction(action, chatId, senderId) {
         }
       } catch {}
       // 立即发送"处理中"卡片（无按钮），替换原卡片
-      await sendProcessedCard(chatId, '正在创建项目...', 'blue', params, '⏳ 正在创建项目，请稍候...')
+      try {
+        await sendProcessedCard(chatId, '正在创建项目...', 'blue', params, '⏳ 正在创建项目，请稍候...')
+      } catch (e) {
+        console.error('Failed to send processing card:', e.message)
+      }
       try {
         const data = await callTool('create_project', params)
         if (!data || !data.record_id) {
@@ -362,20 +366,28 @@ async function handleCardAction(action, chatId, senderId) {
         }
         // 发送成功卡片
         if (chatId) {
-          const card = buildProjectCreatedCard(data, params)
-          await client.im.message.create({
-            params: { receive_id_type: 'chat_id' },
-            data: { receive_id: chatId, msg_type: 'interactive', content: JSON.stringify(card) },
-          })
+          try {
+            const card = buildProjectCreatedCard(data, params)
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'interactive', content: JSON.stringify(card) },
+            })
+          } catch (e) {
+            console.error('Failed to send success card:', e.message)
+          }
         }
         return { success: true }
       } catch (e) {
         console.error('Create project error:', e.message)
         if (chatId) {
-          await client.im.message.create({
-            params: { receive_id_type: 'chat_id' },
-            data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `创建失败：${e.message}` }) },
-          })
+          try {
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `创建失败：${e.message}` }) },
+            })
+          } catch (msgErr) {
+            console.error('Failed to send error message:', msgErr.message)
+          }
         }
         return { success: false, error: e.message }
       }
@@ -383,10 +395,14 @@ async function handleCardAction(action, chatId, senderId) {
 
     if (action.action === 'cancel_project') {
       if (chatId) {
-        await client.im.message.create({
-          params: { receive_id_type: 'chat_id' },
-          data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: '已取消创建' }) },
-        })
+        try {
+          await client.im.message.create({
+            params: { receive_id_type: 'chat_id' },
+            data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: '已取消创建' }) },
+          })
+        } catch (e) {
+          console.error('Failed to send cancel message:', e.message)
+        }
       }
       return { success: true }
     }
@@ -396,10 +412,14 @@ async function handleCardAction(action, chatId, senderId) {
         await callTool('advance_node', { projectId: action.project_id, stageKey: action.stage_key, status: 'completed' })
         const nodeLabel = STAGE_MAP[action.stage_key]?.label || action.stage_key
         if (chatId) {
-          await client.im.message.create({
-            params: { receive_id_type: 'chat_id' },
-            data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `✅ ${nodeLabel} 已标记为完成` }) },
-          })
+          try {
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `✅ ${nodeLabel} 已标记为完成` }) },
+            })
+          } catch (e) {
+            console.error('Failed to send node complete message:', e.message)
+          }
         }
         return { success: true }
       } catch (e) {
@@ -412,10 +432,14 @@ async function handleCardAction(action, chatId, senderId) {
         await callTool('mark_node_abnormal', { projectId: action.project_id, stageKey: action.stage_key, reason: '用户标记异常' })
         const nodeLabel = STAGE_MAP[action.stage_key]?.label || action.stage_key
         if (chatId) {
-          await client.im.message.create({
-            params: { receive_id_type: 'chat_id' },
-            data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `⚠️ ${nodeLabel} 已标记为异常` }) },
-          })
+          try {
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `⚠️ ${nodeLabel} 已标记为异常` }) },
+            })
+          } catch (e) {
+            console.error('Failed to send abnormal message:', e.message)
+          }
         }
         return { success: true }
       } catch (e) {
