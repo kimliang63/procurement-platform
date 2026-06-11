@@ -141,7 +141,7 @@ app.post('/webhook/bot', async (req, res) => {
 
     // 立即加表情回应，表示收到消息
     if (messageId) {
-      client.im.message_reaction.create({
+      client.im.messageReaction.create({
         path: { message_id: messageId },
         data: { reaction_type: { emoji_type: 'OnIt' } },
       }).then(r => console.log('Reaction added:', r.code === 0 ? 'OK' : r.msg))
