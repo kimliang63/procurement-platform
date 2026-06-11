@@ -105,15 +105,10 @@ app.post('/webhook/bot', async (req, res) => {
     console.log(`[${new Date().toISOString()}] Card action received:`, JSON.stringify(action), 'chat:', chatId, 'operator:', operatorId)
 
     if (action?.value) {
-      try {
-        const result = await handleCardAction(action.value, chatId, operatorId)
-        // 返回卡片让飞书原地替换，或返回空对象
-        if (result?.card) {
-          return res.json(result.card)
-        }
-      } catch (e) {
-        console.error('Card action error:', e.message)
-      }
+      // fire-and-forget: 不等待业务逻辑，立即返回空对象避免 200341 超时
+      handleCardAction(action.value, chatId, operatorId).catch(e => {
+        console.error('Card action async error:', e.message)
+      })
     }
     return res.json({})
   }
@@ -194,14 +189,9 @@ app.post('/webhook/card', async (req, res) => {
     console.log(`[${new Date().toISOString()}] /webhook/card action:`, JSON.stringify(action), 'chat:', chatId)
 
     if (action?.value) {
-      try {
-        const result = await handleCardAction(action.value, chatId, operatorId)
-        if (result?.card) {
-          return res.json(result.card)
-        }
-      } catch (e) {
-        console.error('Card action error:', e.message)
-      }
+      handleCardAction(action.value, chatId, operatorId).catch(e => {
+        console.error('Card action async error:', e.message)
+      })
     }
   }
 

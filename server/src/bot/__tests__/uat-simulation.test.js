@@ -305,9 +305,9 @@ describe('UAT 4. 项目创建 — 确认与取消', () => {
       params: { ...fullParams },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    expect(result.card).toBeDefined()
+    expect(result.success).toBe(true)
     // 等待异步创建完成
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise(r => setTimeout(r, 100))
     expect(callTool).toHaveBeenCalledWith('create_project', expect.any(Object))
   })
 
@@ -632,9 +632,7 @@ describe('UAT 14. 错误处理', () => {
       params: { name: '重复项目', category: '设备', owner: '张三' },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    // confirm_project 返回处理中卡片（原地替换），后台异步执行创建
-    expect(result.card).toBeDefined()
-    // 等待异步创建完成
+    expect(result.success).toBe(true)
     await new Promise(r => setTimeout(r, 100))
   })
 

@@ -763,10 +763,10 @@ describe('卡片按钮操作', () => {
     }
 
     const result = await handleCardAction(action, 'oc_test_chat')
-    // 返回处理中卡片，项目创建在后台异步执行
-    expect(result.card).toBeDefined()
+    // confirm_project 返回 success，项目创建在后台异步执行
+    expect(result.success).toBe(true)
     // 等待异步创建完成
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise(r => setTimeout(r, 100))
     expect(callTool).toHaveBeenCalledWith('create_project', action.params)
     expect(client.im.message.create).toHaveBeenCalled()
   })
@@ -862,8 +862,7 @@ describe('异常处理', () => {
       params: { name: '失败项目', category: '设备', owner: '张三' },
     }
     const result = await handleCardAction(action, 'oc_test_chat')
-    // confirm_project 返回处理中卡片，后台异步执行创建
-    expect(result.card).toBeDefined()
+    expect(result.success).toBe(true)
     await new Promise(r => setTimeout(r, 100))
   })
 
