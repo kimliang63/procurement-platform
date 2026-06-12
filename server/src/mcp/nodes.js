@@ -1,6 +1,6 @@
 const { listRecords, getRecord, createRecord, updateRecord, TABLE_IDS } = require('../feishu/bitable')
 const client = require('../feishu/client')
-const { isNodeMandatory, getNodeValidation, getNodeRule, getVisibleNodes } = require('./rules')
+const { isNodeMandatory, getNodeValidation } = require('./rules')
 
 const STAGE_MAP = {
   requirement: { label: '需求确认', order: 1 },
@@ -67,28 +67,20 @@ async function checkAndAutoComplete(projectId, projectData, nodesData) {
 }
 
 async function initProjectNodes(params) {
-  const { projectId, taskType, procurementMethod } = params
-  // 按规则过滤：只创建 visible 和 required 的节点
-  const visibleKeys = (taskType && procurementMethod)
-    ? getVisibleNodes(taskType, procurementMethod)
-    : STAGE_KEYS // 兼容旧调用（无 taskType 时创建全部）
-  const visibleSet = new Set(visibleKeys)
-
-  const records = Object.entries(STAGE_MAP)
-    .filter(([key]) => visibleSet.has(key))
-    .map(([key, info], idx) => ({
-      fields: {
-        project_id: projectId,
-        stage_key: key,
-        stage_label: info.label,
-        order: info.order,
-        status: idx === 0 ? 'in_progress' : 'pending',
-        plan_start: '',
-        plan_end: '',
-        actual_date: '',
-        note: '',
-      }
-    }))
+  const { projectId } = params
+  const records = Object.entries(STAGE_MAP).map(([key, info]) => ({
+    fields: {
+      project_id: projectId,
+      stage_key: key,
+      stage_label: info.label,
+      order: info.order,
+      status: info.order === 1 ? 'in_progress' : 'pending',
+      plan_start: '',
+      plan_end: '',
+      actual_date: '',
+      note: '',
+    }
+  }))
 
   const res = await client.bitable.appTableRecord.batchCreate({
     path: { app_token: process.env.FEISHU_BITABLE_APP_TOKEN, table_id: TABLE_IDS.nodes },
@@ -116,15 +108,7 @@ async function advanceNode(params) {
   ])
 
   const taskType = project?.fields?.task_type
-  const procurementMethod = project?.fields?.procurement_method
-  if (taskType && procurementMethod) {
-    const rule = getNodeRule(taskType, procurementMethod, stageKey)
-    if (rule !== 'required') {
-      const label = STAGE_MAP[stageKey]?.label || stageKey
-      if (rule === 'hidden') throw new Error(`节点"${label}"不适用于当前项目配置，无法推进`)
-      throw new Error(`节点"${label}"为显示节点，非必填，无法推进`)
-    }
-  } else if (taskType && !isNodeMandatory(taskType, stageKey)) {
+  if (taskType && !isNodeMandatory(taskType, stageKey)) {
     throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于任务类型"${taskType}"，无法推进`)
   }
 
@@ -156,13 +140,7 @@ async function updateNode(params) {
   if (rest.actual_date) {
     const project = await require('./projects').getProject({ projectId })
     const taskType = project?.fields?.task_type
-    const procurementMethod = project?.fields?.procurement_method
-    if (taskType && procurementMethod) {
-      const rule = getNodeRule(taskType, procurementMethod, stageKey)
-      if (rule === 'required' && !rest.actual_date) {
-        throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"为必填项，需要填写实际完成日期`)
-      }
-    } else if (taskType) {
+    if (taskType) {
       const validation = getNodeValidation(taskType, stageKey, { actual_date: rest.actual_date })
       if (!validation.valid) throw new Error(validation.message)
     }

@@ -3,7 +3,7 @@ import { Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Space
 import { PlusOutlined, DeleteOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, createProject, deleteProject, getUsers, getBatchNodes, getIssues } from '../api'
-import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS, TASK_TYPE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
+import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS } from '../constants/stages'
 
 const STATUS_COLORS = { '进行中': 'blue', '项目完成': 'green', '项目暂停': 'orange', '项目取消': 'red' }
 
@@ -22,24 +22,21 @@ function isDelayed(node) {
 function ProjectCard({ project, nodes, issueCount, onDelete }) {
   const navigate = useNavigate()
   const f = project.fields || {}
-  // 按任务类型和采购方式过滤可见节点
-  const visibleKeys = getVisibleStages(f.task_type, f.procurement_method)
-  const visibleNodes = nodes.filter(n => visibleKeys.includes(n.fields?.stage_key))
-  const completedCount = visibleNodes.filter(n => n.fields?.actual_date).length
-  const total = visibleNodes.length || 1
+  const completedCount = nodes.filter(n => n.fields?.actual_date).length
+  const total = nodes.length || 1
   const progress = Math.round((completedCount / total) * 100)
 
   // Find current node (in_progress or first pending after last completed)
   const currentNodeIdx = (() => {
-    const inProgress = visibleNodes.findIndex(n => n.fields?.status === 'in_progress')
+    const inProgress = nodes.findIndex(n => n.fields?.status === 'in_progress')
     if (inProgress >= 0) return inProgress
     const lastCompleted = (() => {
-      for (let i = visibleNodes.length - 1; i >= 0; i--) {
-        if (visibleNodes[i].fields?.actual_date) return i
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        if (nodes[i].fields?.actual_date) return i
       }
       return -1
     })()
-    return lastCompleted + 1 < visibleNodes.length ? lastCompleted + 1 : visibleNodes.length - 1
+    return lastCompleted + 1 < nodes.length ? lastCompleted + 1 : nodes.length - 1
   })()
 
   return (
@@ -64,8 +61,8 @@ function ProjectCard({ project, nodes, issueCount, onDelete }) {
       {/* Timeline */}
       <div style={styles.timelineWrap}>
         <div style={styles.timeline}>
-          {visibleKeys.map((key, idx) => {
-            const node = visibleNodes.find(n => n.fields?.stage_key === key)
+          {STAGE_KEYS.map((key, idx) => {
+            const node = nodes.find(n => n.fields?.stage_key === key)
             const status = node?.fields?.actual_date ? 'completed' : idx === currentNodeIdx ? 'in_progress' : 'pending'
             const delayed = isDelayed(node)
             const label = STAGE_MAP[key]
@@ -239,10 +236,7 @@ export default function ProjectList() {
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} placeholder="请输入数字" />
           </Form.Item>
           <Form.Item name="taskType" label="任务类型" rules={[{ required: true, message: '请选择任务类型' }]}>
-            <Select placeholder="请选择" options={TASK_TYPE_OPTIONS} />
-          </Form.Item>
-          <Form.Item name="procurementMethod" label="采购方式" rules={[{ required: true, message: '请选择采购方式' }]}>
-            <Select placeholder="请选择" options={PROCUREMENT_METHOD_OPTIONS} />
+            <Select placeholder="请选择" options={[{ value: '框架招标', label: '框架招标' }, { value: '单一来源', label: '单一来源' }, { value: '单次采购<100万', label: '单次采购＜100万' }, { value: '单次采购≥100万', label: '单次采购≥100万' }]} />
           </Form.Item>
           <Form.Item name="planStart" label="计划开始" rules={[{ required: true, message: '请选择计划开始日期' }]}>
             <Input type="date" />

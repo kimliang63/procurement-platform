@@ -168,7 +168,7 @@ describe('项目创建 — 发起创建', () => {
   test('信息完整 → 发送确认卡片', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31', taskType: '单次采购<100万', procurementMethod: '项目类' },
+      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
       message: '请确认以下信息',
     })
 
@@ -180,7 +180,7 @@ describe('项目创建 — 发起创建', () => {
   test('全部信息一次性输入 → 发送确认卡片', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 200, planStart: '2026-03-01', planEnd: '2026-12-31', taskType: '单次采购≥100万', procurementMethod: '项目类' },
+      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 200, planStart: '2026-03-01', planEnd: '2026-12-31' },
       message: '请确认',
     })
 
@@ -356,7 +356,7 @@ describe('项目创建 — 日期校验', () => {
   test('结束早于开始 → 报错', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-12-31', planEnd: '2026-01-01', taskType: '单次采购<100万', procurementMethod: '项目类' },
+      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-12-31', planEnd: '2026-01-01' },
       message: '请确认',
     })
 
@@ -367,7 +367,7 @@ describe('项目创建 — 日期校验', () => {
   test('同一天 → 允许通过', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-06-01', planEnd: '2026-06-01', taskType: '单次采购<100万', procurementMethod: '项目类' },
+      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-06-01', planEnd: '2026-06-01' },
       message: '请确认',
     })
 
@@ -380,7 +380,7 @@ describe('项目创建 — 日期校验', () => {
 // 4. 项目创建 — 确认与取消
 // ============================================================
 describe('项目创建 — 确认与取消', () => {
-  const fullParams = { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31', taskType: '单次采购<100万', procurementMethod: '项目类' }
+  const fullParams = { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' }
 
   test('"确认" → 弹确认卡片', async () => {
     understandIntent.mockResolvedValue({ intent: 'create_project', params: { ...fullParams }, message: '确认创建' })
@@ -759,7 +759,7 @@ describe('卡片按钮操作', () => {
 
     const action = {
       action: 'confirm_project',
-      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31', taskType: '单次采购<100万', procurementMethod: '项目类' },
+      params: { name: '测试', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
     }
 
     const result = await handleCardAction(action, 'oc_test_chat')

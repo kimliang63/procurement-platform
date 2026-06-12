@@ -142,8 +142,6 @@ async function handleMessage(event) {
     if (!params.budget) missing.push('预算')
     if (!params.planStart) missing.push('计划开始日期')
     if (!params.planEnd) missing.push('计划结束日期')
-    if (!params.taskType) missing.push('任务类型')
-    if (!params.procurementMethod) missing.push('采购方式（框架类/项目类）')
 
     // 负责人始终使用当前发送者的真实姓名
     if (senderName) params.owner = senderName
@@ -359,16 +357,6 @@ async function handleCardAction(action, chatId, senderId) {
         const data = await callTool('create_project', params)
         if (!data || !data.record_id) {
           throw new Error('项目创建失败：未返回有效数据')
-        }
-        // 初始化节点（按任务类型和采购方式过滤）
-        try {
-          await callTool('init_project_nodes', {
-            projectId: data.record_id,
-            taskType: params.taskType,
-            procurementMethod: params.procurementMethod,
-          })
-        } catch (e) {
-          console.error('Init project nodes failed:', e.message)
         }
         if (chatId && data.record_id) {
           try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
