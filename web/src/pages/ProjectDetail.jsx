@@ -4,7 +4,7 @@ import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Sele
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
 import PermissionGuard from '../components/PermissionGuard'
-import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS } from '../constants/stages'
+import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS, TASK_TYPE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
@@ -127,6 +127,7 @@ export default function ProjectDetail() {
       owner: f?.owner,
       budget: f?.budget,
       task_type: f?.task_type,
+      procurement_method: f?.procurement_method,
       plan_start: f?.plan_start,
       plan_end: f?.plan_end,
       remark: f?.remark,
@@ -144,6 +145,7 @@ export default function ProjectDetail() {
         owner: values.owner,
         budget: values.budget,
         taskType: values.task_type,
+        procurementMethod: values.procurement_method,
         planStart: values.plan_start,
         planEnd: values.plan_end,
         remark: values.remark,
@@ -171,6 +173,9 @@ export default function ProjectDetail() {
 
   if (!project) return null
   const f = project.fields
+  // 按任务类型和采购方式过滤可见节点
+  const visibleKeys = getVisibleStages(f?.task_type, f?.procurement_method)
+  const visibleNodes = nodes.filter(n => visibleKeys.includes(n.fields?.stage_key))
 
   const nodeColumns = [
     { title: '阶段', dataIndex: ['fields', 'stage_key'], render: v => STAGE_MAP[v] || v },
@@ -193,12 +198,15 @@ export default function ProjectDetail() {
       }
     },
     {
-      title: '操作', render: (_, record) => (
-        <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          <Button size="small" icon={<PlusOutlined />} onClick={() => handleCreateIssue(record)}>创建问题</Button>
-        </Space>
-      )
+      title: '操作', render: (_, record) => {
+        const rule = getNodeDisplayRule(f?.task_type, f?.procurement_method, record.fields?.stage_key)
+        return (
+          <Space>
+            <Button size="small" icon={<EditOutlined />} disabled={rule !== 'required'} onClick={() => handleEdit(record)}>编辑</Button>
+            <Button size="small" icon={<PlusOutlined />} onClick={() => handleCreateIssue(record)}>创建问题</Button>
+          </Space>
+        )
+      }
     },
   ]
 
@@ -244,6 +252,7 @@ export default function ProjectDetail() {
           <Descriptions.Item label="负责人">{f?.owner}</Descriptions.Item>
           <Descriptions.Item label="采购金额">{f?.budget}万</Descriptions.Item>
           <Descriptions.Item label="任务类型">{f?.task_type || '-'}</Descriptions.Item>
+          <Descriptions.Item label="采购方式">{f?.procurement_method || '-'}</Descriptions.Item>
           <Descriptions.Item label="所属部门">{f?.department}</Descriptions.Item>
           <Descriptions.Item label="品类">{f?.category}</Descriptions.Item>
           <Descriptions.Item label="计划周期">{f?.plan_start} ~ {f?.plan_end}</Descriptions.Item>
@@ -257,34 +266,36 @@ export default function ProjectDetail() {
             label: '节点进度',
             children: (
               <>
-                {/* Timeline bar showing all 15 stages */}
+                {/* Timeline bar showing visible stages */}
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'flex', gap: 2 }}>
-                    {STAGE_KEYS.map(stageKey => {
-                      const node = nodes.find(n => n.fields?.stage_key === stageKey)
+                    {visibleKeys.map(stageKey => {
+                      const node = visibleNodes.find(n => n.fields?.stage_key === stageKey)
                       const status = node?.fields?.status || 'pending'
+                      const rule = getNodeDisplayRule(f?.task_type, f?.procurement_method, stageKey)
                       return (
-                        <Tooltip key={stageKey} title={`${STAGE_MAP[stageKey]}: ${status === 'completed' ? '已完成' : status === 'in_progress' ? '进行中' : status === 'blocked' ? '异常' : '待开始'}`}>
+                        <Tooltip key={stageKey} title={`${STAGE_MAP[stageKey]}: ${rule === 'required' ? '必填' : '显示'} - ${status === 'completed' ? '已完成' : status === 'in_progress' ? '进行中' : status === 'blocked' ? '异常' : '待开始'}`}>
                           <div
                             style={{
                               flex: 1,
                               height: 12,
                               borderRadius: 6,
                               background: NODE_STATUS_COLORS[status] || NODE_STATUS_COLORS.pending,
-                              cursor: 'pointer',
+                              cursor: rule === 'required' ? 'pointer' : 'default',
+                              opacity: rule === 'visible' ? 0.6 : 1,
                             }}
-                            onClick={() => node && handleEdit(node)}
+                            onClick={() => rule === 'required' && node && handleEdit(node)}
                           />
                         </Tooltip>
                       )
                     })}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: '#999' }}>
-                    <span>{STAGE_MAP[STAGE_KEYS[0]]}</span>
-                    <span>{STAGE_MAP[STAGE_KEYS[STAGE_KEYS.length - 1]]}</span>
+                    <span>{STAGE_MAP[visibleKeys[0]]}</span>
+                    <span>{STAGE_MAP[visibleKeys[visibleKeys.length - 1]]}</span>
                   </div>
                 </div>
-                <Table dataSource={nodes} rowKey="record_id" pagination={false} columns={nodeColumns} />
+                <Table dataSource={visibleNodes} rowKey="record_id" pagination={false} columns={nodeColumns} />
               </>
             )
           },
@@ -355,7 +366,10 @@ export default function ProjectDetail() {
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="task_type" label="任务类型">
-            <Select options={[{ value: '框架招标', label: '框架招标' }, { value: '单一来源', label: '单一来源' }, { value: '单次采购<100万', label: '单次采购＜100万' }, { value: '单次采购≥100万', label: '单次采购≥100万' }]} />
+            <Select options={TASK_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item name="procurement_method" label="采购方式">
+            <Select options={PROCUREMENT_METHOD_OPTIONS} />
           </Form.Item>
           <Form.Item name="plan_start" label="计划开始" rules={[{ required: true, message: '请选择日期' }]}>
             <Input type="date" />
