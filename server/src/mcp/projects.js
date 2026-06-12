@@ -22,7 +22,7 @@ async function createProject(params) {
     department: params.department || '',
     task_type: params.taskType || '',
     is_single_source: params.isSingleSource || '',
-    budget_amount: params.budgetAmount || '',
+    budget_amount: params.isSingleSource === '是' ? '不区分金额' : (params.budgetAmount || ''),
     procurement_method: params.procurementMethod || '',
     plan_start: params.planStart || '',
     plan_end: params.planEnd || '',
