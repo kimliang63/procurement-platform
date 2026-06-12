@@ -21,9 +21,90 @@ export const STAGE_KEYS = Object.keys(STAGE_MAP)
 export const STAGE_OPTIONS = Object.entries(STAGE_MAP).map(([k, v]) => ({ value: k, label: v }))
 
 export const NODE_STATUS_COLORS = {
-  completed: '#52c41a',  // Green
-  in_progress: '#1677ff', // Blue
-  pending: '#d9d9d9',    // Gray
-  blocked: '#ff4d4f',    // Red
-  overdue: '#ff4d4f',    // Red
+  completed: '#52c41a',
+  in_progress: '#1677ff',
+  pending: '#d9d9d9',
+  blocked: '#ff4d4f',
+  overdue: '#ff4d4f',
+}
+
+export const SINGLE_SOURCE_OPTIONS = [
+  { value: '否', label: '否' },
+  { value: '是', label: '是' },
+]
+
+export const BUDGET_AMOUNT_OPTIONS = [
+  { value: '<100万', label: '＜100万' },
+  { value: '≥100万', label: '≥100万' },
+]
+
+export const PROCUREMENT_METHOD_OPTIONS = [
+  { value: '框架类', label: '框架类' },
+  { value: '项目类', label: '项目类' },
+]
+
+const _NODE_RULES = {
+  '否|<100万|框架类': {
+    requirement: 'required', supplier_dev: 'hidden', tech_exchange: 'hidden',
+    sampling: 'hidden', bid_approval: 'hidden', bid_issue: 'required',
+    bid_qa: 'hidden', bid_return: 'hidden', bid_open: 'hidden',
+    bid_determine: 'required', bid_notify: 'hidden', contract_approval: 'required',
+    production: 'hidden', shipping: 'hidden', acceptance: 'hidden',
+  },
+  '否|<100万|项目类': {
+    requirement: 'required', supplier_dev: 'hidden', tech_exchange: 'hidden',
+    sampling: 'hidden', bid_approval: 'hidden', bid_issue: 'required',
+    bid_qa: 'hidden', bid_return: 'hidden', bid_open: 'hidden',
+    bid_determine: 'required', bid_notify: 'hidden', contract_approval: 'required',
+    production: 'required', shipping: 'required', acceptance: 'required',
+  },
+  '否|≥100万|框架类': {
+    requirement: 'required', supplier_dev: 'required', tech_exchange: 'visible',
+    sampling: 'visible', bid_approval: 'required', bid_issue: 'required',
+    bid_qa: 'required', bid_return: 'required', bid_open: 'required',
+    bid_determine: 'required', bid_notify: 'required', contract_approval: 'required',
+    production: 'hidden', shipping: 'hidden', acceptance: 'hidden',
+  },
+  '否|≥100万|项目类': {
+    requirement: 'required', supplier_dev: 'required', tech_exchange: 'visible',
+    sampling: 'visible', bid_approval: 'required', bid_issue: 'required',
+    bid_qa: 'required', bid_return: 'required', bid_open: 'required',
+    bid_determine: 'required', bid_notify: 'required', contract_approval: 'required',
+    production: 'required', shipping: 'required', acceptance: 'required',
+  },
+  '是|不区分金额|框架类': {
+    requirement: 'required', supplier_dev: 'hidden', tech_exchange: 'hidden',
+    sampling: 'hidden', bid_approval: 'hidden', bid_issue: 'required',
+    bid_qa: 'hidden', bid_return: 'hidden', bid_open: 'hidden',
+    bid_determine: 'required', bid_notify: 'hidden', contract_approval: 'required',
+    production: 'hidden', shipping: 'hidden', acceptance: 'hidden',
+  },
+  '是|不区分金额|项目类': {
+    requirement: 'required', supplier_dev: 'hidden', tech_exchange: 'hidden',
+    sampling: 'hidden', bid_approval: 'hidden', bid_issue: 'required',
+    bid_qa: 'hidden', bid_return: 'hidden', bid_open: 'hidden',
+    bid_determine: 'required', bid_notify: 'hidden', contract_approval: 'required',
+    production: 'required', shipping: 'required', acceptance: 'required',
+  },
+}
+
+export function getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, stageKey) {
+  const budget = isSingleSource === '是' ? '不区分金额' : budgetAmount
+  const key = `${isSingleSource}|${budget}|${procurementMethod}`
+  const rule = _NODE_RULES[key]
+  if (!rule) return 'visible'
+  return rule[stageKey] || 'visible'
+}
+
+export function getVisibleStages(isSingleSource, budgetAmount, procurementMethod) {
+  return STAGE_KEYS.filter(sk => {
+    const rule = getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, sk)
+    return rule === 'required' || rule === 'visible'
+  })
+}
+
+export function getRequiredStages(isSingleSource, budgetAmount, procurementMethod) {
+  return STAGE_KEYS.filter(sk => {
+    return getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, sk) === 'required'
+  })
 }

@@ -140,6 +140,9 @@ async function handleMessage(event) {
     if (!params.category) missing.push('采购品类')
     if (!params.department) missing.push('所属部门')
     if (!params.budget) missing.push('预算')
+    if (!params.isSingleSource) missing.push('是否单一来源')
+    if (!params.budgetAmount && params.isSingleSource !== '是') missing.push('预算金额（<100万/≥100万）')
+    if (!params.procurementMethod) missing.push('采购方式（框架类/项目类）')
     if (!params.planStart) missing.push('计划开始日期')
     if (!params.planEnd) missing.push('计划结束日期')
 

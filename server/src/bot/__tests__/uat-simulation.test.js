@@ -108,7 +108,7 @@ describe('UAT 1. 项目创建 — 发起创建', () => {
   test('1.9：信息完整 → 发送确认卡片', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31' },
+      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31', isSingleSource: '否', budgetAmount: '<100万', procurementMethod: '项目类' },
       message: '请确认以下信息',
     })
 
@@ -120,7 +120,7 @@ describe('UAT 1. 项目创建 — 发起创建', () => {
   test('1.10：全部信息一次性输入 → 发送确认卡片', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 200, planStart: '2026-03-01', planEnd: '2026-12-31' },
+      params: { name: '测试项目', category: '设备', owner: '张三', department: 'FBU', budget: 200, planStart: '2026-03-01', planEnd: '2026-12-31', isSingleSource: '否', budgetAmount: '≥100万', procurementMethod: '项目类' },
       message: '请确认',
     })
 
@@ -242,7 +242,7 @@ describe('UAT 3. 项目创建 — 日期校验', () => {
   test('3.1：结束早于开始 → 报错', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-12-31', planEnd: '2026-01-01' },
+      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-12-31', planEnd: '2026-01-01', isSingleSource: '否', budgetAmount: '<100万', procurementMethod: '项目类' },
       message: '请确认',
     })
 
@@ -253,7 +253,7 @@ describe('UAT 3. 项目创建 — 日期校验', () => {
   test('3.2：同一天 → 允许通过', async () => {
     understandIntent.mockResolvedValue({
       intent: 'create_project',
-      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-06-01', planEnd: '2026-06-01' },
+      params: { name: '测试', category: '设备', department: 'FBU', budget: 100, planStart: '2026-06-01', planEnd: '2026-06-01', isSingleSource: '否', budgetAmount: '<100万', procurementMethod: '项目类' },
       message: '请确认',
     })
 
@@ -269,6 +269,7 @@ describe('UAT 4. 项目创建 — 确认与取消', () => {
   const fullParams = {
     name: '测试', category: '设备', owner: '张三', department: 'FBU',
     budget: 100, planStart: '2026-01-01', planEnd: '2026-12-31',
+    isSingleSource: '否', budgetAmount: '<100万', procurementMethod: '项目类',
   }
 
   const confirmCases = [

@@ -3,7 +3,7 @@ import { Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Space
 import { PlusOutlined, DeleteOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, createProject, deleteProject, getUsers, getBatchNodes, getIssues } from '../api'
-import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS } from '../constants/stages'
+import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, BUDGET_AMOUNT_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
 
 const STATUS_COLORS = { '进行中': 'blue', '项目完成': 'green', '项目暂停': 'orange', '项目取消': 'red' }
 
@@ -226,8 +226,18 @@ export default function ProjectTimeline() {
           <Form.Item name="budget" label="预算(万元)" rules={[{ required: true, message: '请输入预算' }]}>
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} placeholder="请输入数字" />
           </Form.Item>
-          <Form.Item name="taskType" label="任务类型" rules={[{ required: true, message: '请选择任务类型' }]}>
-            <Select placeholder="请选择" options={[{ value: '框架招标', label: '框架招标' }, { value: '单一来源', label: '单一来源' }, { value: '单次采购<100万', label: '单次采购＜100万' }, { value: '单次采购≥100万', label: '单次采购≥100万' }]} />
+          <Form.Item name="isSingleSource" label="是否单一来源" rules={[{ required: true, message: '请选择' }]}>
+            <Select placeholder="请选择" options={SINGLE_SOURCE_OPTIONS} />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.isSingleSource !== cur.isSingleSource}>
+            {({ getFieldValue }) => getFieldValue('isSingleSource') !== '是' && (
+              <Form.Item name="budgetAmount" label="预算金额" rules={[{ required: true, message: '请选择预算金额档位' }]}>
+                <Select placeholder="请选择" options={BUDGET_AMOUNT_OPTIONS} />
+              </Form.Item>
+            )}
+          </Form.Item>
+          <Form.Item name="procurementMethod" label="采购方式" rules={[{ required: true, message: '请选择采购方式' }]}>
+            <Select placeholder="请选择" options={PROCUREMENT_METHOD_OPTIONS} />
           </Form.Item>
           <Form.Item name="planStart" label="计划开始" rules={[{ required: true, message: '请选择计划开始日期' }]}>
             <Input type="date" />

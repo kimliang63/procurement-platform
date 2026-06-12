@@ -87,6 +87,9 @@ function buildProjectConfirmCard(params) {
     { is_short: true, text: { tag: 'lark_md', content: `**负责人**\n${params?.owner || '—'}` } },
     { is_short: true, text: { tag: 'lark_md', content: `**所属部门**\n${params?.department || '—'}` } },
     { is_short: true, text: { tag: 'lark_md', content: `**预算**\n${params?.budget || '—'}万` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**是否单一来源**\n${params?.isSingleSource || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**预算金额**\n${params?.budgetAmount || '—'}` } },
+    { is_short: true, text: { tag: 'lark_md', content: `**采购方式**\n${params?.procurementMethod || '—'}` } },
     { is_short: true, text: { tag: 'lark_md', content: `**计划周期**\n${params?.planStart || '—'} ~ ${params?.planEnd || '—'}` } },
   ]
 

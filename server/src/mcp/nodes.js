@@ -1,6 +1,6 @@
 const { listRecords, getRecord, createRecord, updateRecord, TABLE_IDS } = require('../feishu/bitable')
 const client = require('../feishu/client')
-const { isNodeMandatory, getNodeValidation } = require('./rules')
+const { getVisibleNodes, getNodeRule, getNodeValidation } = require('./rules')
 
 const STAGE_MAP = {
   requirement: { label: '需求确认', order: 1 },
@@ -67,8 +67,14 @@ async function checkAndAutoComplete(projectId, projectData, nodesData) {
 }
 
 async function initProjectNodes(params) {
-  const { projectId } = params
-  const records = Object.entries(STAGE_MAP).map(([key, info]) => ({
+  const { projectId, isSingleSource, budgetAmount, procurementMethod } = params
+  const visibleKeys = (isSingleSource && procurementMethod)
+    ? getVisibleNodes(isSingleSource, budgetAmount, procurementMethod)
+    : STAGE_KEYS
+  const visibleSet = new Set(visibleKeys)
+  const records = Object.entries(STAGE_MAP)
+    .filter(([key]) => visibleSet.has(key))
+    .map(([key, info], idx) => ({
     fields: {
       project_id: projectId,
       stage_key: key,
@@ -107,9 +113,14 @@ async function advanceNode(params) {
     }),
   ])
 
-  const taskType = project?.fields?.task_type
-  if (taskType && !isNodeMandatory(taskType, stageKey)) {
-    throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于任务类型"${taskType}"，无法推进`)
+  const isSingleSource = project?.fields?.is_single_source
+  const budgetAmount = project?.fields?.budget_amount
+  const procurementMethod = project?.fields?.procurement_method
+  if (isSingleSource && procurementMethod) {
+    const rule = getNodeRule(isSingleSource, budgetAmount, procurementMethod, stageKey)
+    if (rule === 'hidden') {
+      throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于当前项目配置，无法推进`)
+    }
   }
 
   const node = nodes[0]
@@ -136,12 +147,14 @@ async function updateNode(params) {
   if (!projectId) throw new Error('缺少 projectId 参数')
   if (!stageKey) throw new Error('缺少 stageKey 参数')
 
-  // Business rule: validate actual_date on mandatory nodes
+  // Business rule: validate actual_date on required nodes
   if (rest.actual_date) {
     const project = await require('./projects').getProject({ projectId })
-    const taskType = project?.fields?.task_type
-    if (taskType) {
-      const validation = getNodeValidation(taskType, stageKey, { actual_date: rest.actual_date })
+    const isSingleSource = project?.fields?.is_single_source
+    const budgetAmount = project?.fields?.budget_amount
+    const procurementMethod = project?.fields?.procurement_method
+    if (isSingleSource && procurementMethod) {
+      const validation = getNodeValidation(isSingleSource, budgetAmount, procurementMethod, stageKey, { actual_date: rest.actual_date })
       if (!validation.valid) throw new Error(validation.message)
     }
   }
