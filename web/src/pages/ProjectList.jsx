@@ -3,7 +3,7 @@ import { Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Space
 import { PlusOutlined, DeleteOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, createProject, deleteProject, getUsers, getBatchNodes, getIssues } from '../api'
-import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, BUDGET_AMOUNT_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
+import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
 
 const STATUS_COLORS = { '进行中': 'blue', '项目完成': 'green', '项目暂停': 'orange', '项目取消': 'red' }
 
@@ -22,7 +22,7 @@ function isDelayed(node) {
 function ProjectCard({ project, nodes, issueCount, onDelete }) {
   const navigate = useNavigate()
   const f = project.fields || {}
-  const visibleKeys = getVisibleStages(f.is_single_source, f.budget_amount, f.procurement_method)
+  const visibleKeys = getVisibleStages(f.is_single_source, f.budget, f.procurement_method)
   const visibleNodes = nodes.filter(n => visibleKeys.includes(n.fields?.stage_key))
   const completedCount = visibleNodes.filter(n => n.fields?.actual_date).length
   const total = visibleNodes.length || 1
@@ -239,13 +239,6 @@ export default function ProjectList() {
           </Form.Item>
           <Form.Item name="isSingleSource" label="是否单一来源" rules={[{ required: true, message: '请选择' }]}>
             <Select placeholder="请选择" options={SINGLE_SOURCE_OPTIONS} />
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.isSingleSource !== cur.isSingleSource}>
-            {({ getFieldValue }) => getFieldValue('isSingleSource') !== '是' && (
-              <Form.Item name="budgetAmount" label="预算金额" rules={[{ required: true, message: '请选择预算金额档位' }]}>
-                <Select placeholder="请选择" options={BUDGET_AMOUNT_OPTIONS} />
-              </Form.Item>
-            )}
           </Form.Item>
           <Form.Item name="procurementMethod" label="采购方式" rules={[{ required: true, message: '请选择采购方式' }]}>
             <Select placeholder="请选择" options={PROCUREMENT_METHOD_OPTIONS} />

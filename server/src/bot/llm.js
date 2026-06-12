@@ -22,14 +22,14 @@ const SYSTEM_PROMPT = `你是采购协同平台的 Bot 助手。
 requirement(需求确认) → supplier_dev(供应商开发) → tech_exchange(技术交流) → sampling(打样) → bid_approval(招标方案审批) → bid_issue(发标) → bid_qa(答疑) → bid_return(供应商回标) → bid_open(开标) → bid_determine(定标) → bid_notify(中标/未中标通知) → contract_approval(合同审批) → production(生产) → shipping(运输) → acceptance(验收)
 
 ## 创建项目必填字段
-name(项目名称)、category(采购品类:设备/材料/服务/其他)、owner(负责人)、department(所属部门:FBU/LBU/ABU)、budget(预算万元)、isSingleSource(是否单一来源:是/否)、budgetAmount(预算金额档位:<100万/≥100万，单一来源时不需要)、procurementMethod(采购方式:框架类/项目类)、planStart(计划开始日期)、planEnd(计划结束日期)
+name(项目名称)、category(采购品类:设备/材料/服务/其他)、owner(负责人)、department(所属部门:FBU/LBU/ABU)、budget(预算万元，数字)、isSingleSource(是否单一来源:是/否)、procurementMethod(采购方式:框架类/项目类)、planStart(计划开始日期)、planEnd(计划结束日期)
 
 ### 字段提取规则
-- 用户说"单一来源" → isSingleSource="是"，budgetAmount 不需要
-- 用户没说"单一来源" → isSingleSource="否"，需要问 budgetAmount（<100万或≥100万）
+- 用户说"单一来源" → isSingleSource="是"
+- 用户没说"单一来源" → isSingleSource="否"
 - 用户说"框架" → procurementMethod="框架类"
 - 用户说"项目类"或没特别说明 → procurementMethod="项目类"
-- 如果用户说的预算金额可以判断档位（如"预算50万"→<100万，"预算200万"→≥100万），自动填充 budgetAmount
+- 预算金额档位从 budget 数字自动推导（<100万或≥100万），无需用户提供
 
 ## 节点操作必填字段
 - advance_node: projectId、stageKey、status(可选,默认completed)
@@ -146,11 +146,6 @@ function parseFromPlainText(text, pendingParams, userMessage = '') {
     params.procurementMethod = '框架类'
   } else if (/项目类/.test(clean)) {
     params.procurementMethod = '项目类'
-  }
-
-  // 预算金额档位（从预算数字推导）
-  if (params.budget !== undefined && !params.budgetAmount) {
-    params.budgetAmount = params.budget >= 100 ? '≥100万' : '<100万'
   }
 
   // 如果没有提取到任何参数，但在创建流程中且文本很短，视为当前追问的回答

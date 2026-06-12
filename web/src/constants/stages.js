@@ -33,15 +33,18 @@ export const SINGLE_SOURCE_OPTIONS = [
   { value: '是', label: '是' },
 ]
 
-export const BUDGET_AMOUNT_OPTIONS = [
-  { value: '<100万', label: '＜100万' },
-  { value: '≥100万', label: '≥100万' },
-]
-
 export const PROCUREMENT_METHOD_OPTIONS = [
   { value: '框架类', label: '框架类' },
   { value: '项目类', label: '项目类' },
 ]
+
+// 从预算数字推导档位
+function deriveBudgetTier(budget, isSingleSource) {
+  if (isSingleSource === '是') return '不区分金额'
+  const num = Number(budget)
+  if (isNaN(num) || num === 0) return '<100万'
+  return num >= 100 ? '≥100万' : '<100万'
+}
 
 const _NODE_RULES = {
   '否|<100万|框架类': {
@@ -88,23 +91,23 @@ const _NODE_RULES = {
   },
 }
 
-export function getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, stageKey) {
-  const budget = isSingleSource === '是' ? '不区分金额' : budgetAmount
-  const key = `${isSingleSource}|${budget}|${procurementMethod}`
+export function getNodeDisplayRule(isSingleSource, budget, procurementMethod, stageKey) {
+  const tier = deriveBudgetTier(budget, isSingleSource)
+  const key = `${isSingleSource}|${tier}|${procurementMethod}`
   const rule = _NODE_RULES[key]
   if (!rule) return 'visible'
   return rule[stageKey] || 'visible'
 }
 
-export function getVisibleStages(isSingleSource, budgetAmount, procurementMethod) {
+export function getVisibleStages(isSingleSource, budget, procurementMethod) {
   return STAGE_KEYS.filter(sk => {
-    const rule = getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, sk)
+    const rule = getNodeDisplayRule(isSingleSource, budget, procurementMethod, sk)
     return rule === 'required' || rule === 'visible'
   })
 }
 
-export function getRequiredStages(isSingleSource, budgetAmount, procurementMethod) {
+export function getRequiredStages(isSingleSource, budget, procurementMethod) {
   return STAGE_KEYS.filter(sk => {
-    return getNodeDisplayRule(isSingleSource, budgetAmount, procurementMethod, sk) === 'required'
+    return getNodeDisplayRule(isSingleSource, budget, procurementMethod, sk) === 'required'
   })
 }

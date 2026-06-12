@@ -22,7 +22,6 @@ async function createProject(params) {
     department: params.department || '',
     task_type: params.taskType || '',
     is_single_source: params.isSingleSource || '',
-    budget_amount: params.isSingleSource === '是' ? '不区分金额' : (params.budgetAmount || ''),
     procurement_method: params.procurementMethod || '',
     plan_start: params.planStart || '',
     plan_end: params.planEnd || '',
@@ -54,7 +53,6 @@ async function updateProject(params) {
   if (rest.department !== undefined) fields.department = rest.department
   if (rest.taskType !== undefined) fields.task_type = rest.taskType
   if (rest.isSingleSource !== undefined) fields.is_single_source = rest.isSingleSource
-  if (rest.budgetAmount !== undefined) fields.budget_amount = rest.budgetAmount
   if (rest.procurementMethod !== undefined) fields.procurement_method = rest.procurementMethod
   if (rest.status) fields.status = rest.status
   if (rest.remark !== undefined) fields.remark = rest.remark
@@ -74,12 +72,15 @@ async function getProject(params) {
 }
 
 async function listProjects(params = {}) {
-  let projects = await listRecords('projects')
-  // filterByOwner middleware sets req.query.owner for non-admin users
-  if (params.owner) {
-    projects = projects.filter(p => p.fields?.owner === params.owner)
-  }
-  return projects
+  const conditions = []
+  if (params.owner) conditions.push(`CurrentValue.[owner]="${params.owner}"`)
+  if (params.status) conditions.push(`CurrentValue.[status]="${params.status}"`)
+
+  const filterExpr = conditions.length > 1
+    ? `AND(${conditions.join(',')})`
+    : conditions[0] || ''
+
+  return await listRecords('projects', filterExpr ? { filter: filterExpr } : {})
 }
 
 module.exports = { createProject, updateProject, deleteProject, getProject, listProjects }

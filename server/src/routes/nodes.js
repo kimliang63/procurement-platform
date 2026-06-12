@@ -9,10 +9,14 @@ router.get('/batch', async (req, res) => {
     const ids = (req.query.projectIds || '').split(',').filter(Boolean)
     if (ids.length === 0) return res.json({ data: {} })
 
-    const allNodes = await listRecords('nodes')
+    const filterExpr = ids.length === 1
+      ? `CurrentValue.[project_id]="${ids[0]}"`
+      : `OR(${ids.map(id => `CurrentValue.[project_id]="${id}"`).join(',')})`
+
+    const nodes = await listRecords('nodes', { filter: filterExpr })
     const result = {}
     ids.forEach(id => { result[id] = [] })
-    allNodes.forEach(n => {
+    nodes.forEach(n => {
       const pid = n.fields?.project_id
       if (result[pid]) result[pid].push(n)
     })

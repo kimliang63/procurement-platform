@@ -11,3 +11,4 @@ coverage/
 _old_procurement-platform/
 prototype/
 .vercel
+.env*

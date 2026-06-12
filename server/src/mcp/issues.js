@@ -23,12 +23,17 @@ async function updateIssue(params) {
 }
 
 async function listIssues(params = {}) {
-  let issues = await listRecords('issues')
-  if (params.projectId) issues = issues.filter(i => i.fields.project_id === params.projectId)
-  if (params.status) issues = issues.filter(i => i.fields.status === params.status)
-  if (params.priority) issues = issues.filter(i => i.fields.priority === params.priority)
-  if (params.owner) issues = issues.filter(i => i.fields.assignee === params.owner)
-  return issues
+  const conditions = []
+  if (params.projectId) conditions.push(`CurrentValue.[project_id]="${params.projectId}"`)
+  if (params.status) conditions.push(`CurrentValue.[status]="${params.status}"`)
+  if (params.priority) conditions.push(`CurrentValue.[priority]="${params.priority}"`)
+  if (params.owner) conditions.push(`CurrentValue.[assignee]="${params.owner}"`)
+
+  const filterExpr = conditions.length > 1
+    ? `AND(${conditions.join(',')})`
+    : conditions[0] || ''
+
+  return await listRecords('issues', filterExpr ? { filter: filterExpr } : {})
 }
 
 async function getIssue(params) {

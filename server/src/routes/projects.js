@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
       await callTool('init_project_nodes', {
         projectId: project.record_id,
         isSingleSource: req.body.isSingleSource,
-        budgetAmount: req.body.budgetAmount,
+        budget: req.body.budget,
         procurementMethod: req.body.procurementMethod,
       })
     }

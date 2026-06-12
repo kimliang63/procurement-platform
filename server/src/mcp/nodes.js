@@ -67,9 +67,9 @@ async function checkAndAutoComplete(projectId, projectData, nodesData) {
 }
 
 async function initProjectNodes(params) {
-  const { projectId, isSingleSource, budgetAmount, procurementMethod } = params
+  const { projectId, isSingleSource, budget, procurementMethod } = params
   const visibleKeys = (isSingleSource && procurementMethod)
-    ? getVisibleNodes(isSingleSource, budgetAmount, procurementMethod)
+    ? getVisibleNodes(isSingleSource, budget, procurementMethod)
     : STAGE_KEYS
   const visibleSet = new Set(visibleKeys)
   const records = Object.entries(STAGE_MAP)
@@ -114,10 +114,10 @@ async function advanceNode(params) {
   ])
 
   const isSingleSource = project?.fields?.is_single_source
-  const budgetAmount = project?.fields?.budget_amount
+  const budget = project?.fields?.budget
   const procurementMethod = project?.fields?.procurement_method
   if (isSingleSource && procurementMethod) {
-    const rule = getNodeRule(isSingleSource, budgetAmount, procurementMethod, stageKey)
+    const rule = getNodeRule(isSingleSource, budget, procurementMethod, stageKey)
     if (rule === 'hidden') {
       throw new Error(`节点"${STAGE_MAP[stageKey]?.label || stageKey}"不适用于当前项目配置，无法推进`)
     }
@@ -151,10 +151,10 @@ async function updateNode(params) {
   if (rest.actual_date) {
     const project = await require('./projects').getProject({ projectId })
     const isSingleSource = project?.fields?.is_single_source
-    const budgetAmount = project?.fields?.budget_amount
+    const budget = project?.fields?.budget
     const procurementMethod = project?.fields?.procurement_method
     if (isSingleSource && procurementMethod) {
-      const validation = getNodeValidation(isSingleSource, budgetAmount, procurementMethod, stageKey, { actual_date: rest.actual_date })
+      const validation = getNodeValidation(isSingleSource, budget, procurementMethod, stageKey, { actual_date: rest.actual_date })
       if (!validation.valid) throw new Error(validation.message)
     }
   }

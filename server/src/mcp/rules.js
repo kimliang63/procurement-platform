@@ -1,6 +1,7 @@
-// 三维节点规则矩阵: isSingleSource × budgetAmount × procurementMethod
+// 三维节点规则矩阵: isSingleSource × budget × procurementMethod
 // 值: 'required' | 'visible' | 'hidden'
 // 来源: 飞书表格「采购项目节点关系」
+// budget 为数字（万元），单一来源时忽略金额
 
 const NODE_RULES = {
   // === 否 + <100万 ===
@@ -50,15 +51,23 @@ const NODE_RULES = {
   },
 }
 
-function getNodeRule(isSingleSource, budgetAmount, procurementMethod, stageKey) {
-  const budget = isSingleSource === '是' ? '不区分金额' : budgetAmount
-  const key = `${isSingleSource}|${budget}|${procurementMethod}`
+// 从预算数字推导档位
+function deriveBudgetTier(budget, isSingleSource) {
+  if (isSingleSource === '是') return '不区分金额'
+  const num = Number(budget)
+  if (isNaN(num) || num === 0) return '<100万'
+  return num >= 100 ? '≥100万' : '<100万'
+}
+
+function getNodeRule(isSingleSource, budget, procurementMethod, stageKey) {
+  const tier = deriveBudgetTier(budget, isSingleSource)
+  const key = `${isSingleSource}|${tier}|${procurementMethod}`
   const rule = NODE_RULES[key]
   if (!rule) return 'visible'
   return rule[stageKey] || 'visible'
 }
 
-function getVisibleNodes(isSingleSource, budgetAmount, procurementMethod) {
+function getVisibleNodes(isSingleSource, budget, procurementMethod) {
   const keys = [
     'requirement', 'supplier_dev', 'tech_exchange', 'sampling',
     'bid_approval', 'bid_issue', 'bid_qa', 'bid_return', 'bid_open',
@@ -66,12 +75,12 @@ function getVisibleNodes(isSingleSource, budgetAmount, procurementMethod) {
     'shipping', 'acceptance',
   ]
   return keys.filter(sk => {
-    const rule = getNodeRule(isSingleSource, budgetAmount, procurementMethod, sk)
+    const rule = getNodeRule(isSingleSource, budget, procurementMethod, sk)
     return rule === 'required' || rule === 'visible'
   })
 }
 
-function getRequiredNodes(isSingleSource, budgetAmount, procurementMethod) {
+function getRequiredNodes(isSingleSource, budget, procurementMethod) {
   const keys = [
     'requirement', 'supplier_dev', 'tech_exchange', 'sampling',
     'bid_approval', 'bid_issue', 'bid_qa', 'bid_return', 'bid_open',
@@ -79,24 +88,24 @@ function getRequiredNodes(isSingleSource, budgetAmount, procurementMethod) {
     'shipping', 'acceptance',
   ]
   return keys.filter(sk => {
-    return getNodeRule(isSingleSource, budgetAmount, procurementMethod, sk) === 'required'
+    return getNodeRule(isSingleSource, budget, procurementMethod, sk) === 'required'
   })
 }
 
 // 兼容旧接口
-function isNodeMandatory(isSingleSource, budgetAmount, procurementMethod, stageKey) {
-  return getNodeRule(isSingleSource, budgetAmount, procurementMethod, stageKey) === 'required'
+function isNodeMandatory(isSingleSource, budget, procurementMethod, stageKey) {
+  return getNodeRule(isSingleSource, budget, procurementMethod, stageKey) === 'required'
 }
 
-function getNodeValidation(isSingleSource, budgetAmount, procurementMethod, stageKey, nodeData) {
+function getNodeValidation(isSingleSource, budget, procurementMethod, stageKey, nodeData) {
   if (!nodeData || typeof nodeData !== 'object') {
     return { valid: false, message: '节点数据无效' }
   }
-  const rule = getNodeRule(isSingleSource, budgetAmount, procurementMethod, stageKey)
+  const rule = getNodeRule(isSingleSource, budget, procurementMethod, stageKey)
   if (rule === 'required' && !nodeData.actual_date) {
     return { valid: false, message: `节点"${stageKey}"为必填项，需要填写实际完成日期` }
   }
   return { valid: true }
 }
 
-module.exports = { getNodeRule, getVisibleNodes, getRequiredNodes, isNodeMandatory, getNodeValidation, NODE_RULES }
+module.exports = { getNodeRule, getVisibleNodes, getRequiredNodes, isNodeMandatory, getNodeValidation, deriveBudgetTier, NODE_RULES }

@@ -4,7 +4,7 @@ import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Sele
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
 import PermissionGuard from '../components/PermissionGuard'
-import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS, SINGLE_SOURCE_OPTIONS, BUDGET_AMOUNT_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
+import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
@@ -127,7 +127,6 @@ export default function ProjectDetail() {
       owner: f?.owner,
       budget: f?.budget,
       is_single_source: f?.is_single_source,
-      budget_amount: f?.budget_amount,
       procurement_method: f?.procurement_method,
       plan_start: f?.plan_start,
       plan_end: f?.plan_end,
@@ -146,7 +145,6 @@ export default function ProjectDetail() {
         owner: values.owner,
         budget: values.budget,
         isSingleSource: values.is_single_source,
-        budgetAmount: values.budget_amount,
         procurementMethod: values.procurement_method,
         planStart: values.plan_start,
         planEnd: values.plan_end,
@@ -175,7 +173,7 @@ export default function ProjectDetail() {
 
   if (!project) return null
   const f = project.fields
-  const visibleKeys = getVisibleStages(f?.is_single_source, f?.budget_amount, f?.procurement_method)
+  const visibleKeys = getVisibleStages(f?.is_single_source, f?.budget, f?.procurement_method)
   const visibleNodes = nodes.filter(n => visibleKeys.includes(n.fields?.stage_key))
 
   const nodeColumns = [
@@ -200,7 +198,7 @@ export default function ProjectDetail() {
     },
     {
       title: '操作', render: (_, record) => {
-        const rule = getNodeDisplayRule(f?.is_single_source, f?.budget_amount, f?.procurement_method, record.fields?.stage_key)
+        const rule = getNodeDisplayRule(f?.is_single_source, f?.budget, f?.procurement_method, record.fields?.stage_key)
         return (
           <Space>
             <Button size="small" icon={<EditOutlined />} disabled={rule !== 'required'} onClick={() => handleEdit(record)}>编辑</Button>
@@ -253,7 +251,6 @@ export default function ProjectDetail() {
           <Descriptions.Item label="负责人">{f?.owner}</Descriptions.Item>
           <Descriptions.Item label="采购金额">{f?.budget}万</Descriptions.Item>
           <Descriptions.Item label="是否单一来源">{f?.is_single_source || '-'}</Descriptions.Item>
-          <Descriptions.Item label="预算金额">{f?.budget_amount || '-'}</Descriptions.Item>
           <Descriptions.Item label="采购方式">{f?.procurement_method || '-'}</Descriptions.Item>
           <Descriptions.Item label="所属部门">{f?.department}</Descriptions.Item>
           <Descriptions.Item label="品类">{f?.category}</Descriptions.Item>
@@ -274,7 +271,7 @@ export default function ProjectDetail() {
                     {visibleKeys.map(stageKey => {
                       const node = visibleNodes.find(n => n.fields?.stage_key === stageKey)
                       const status = node?.fields?.status || 'pending'
-                      const rule = getNodeDisplayRule(f?.is_single_source, f?.budget_amount, f?.procurement_method, stageKey)
+                      const rule = getNodeDisplayRule(f?.is_single_source, f?.budget, f?.procurement_method, stageKey)
                       return (
                         <Tooltip key={stageKey} title={`${STAGE_MAP[stageKey]}: ${rule === 'required' ? '必填' : '显示'} - ${status === 'completed' ? '已完成' : status === 'in_progress' ? '进行中' : status === 'blocked' ? '异常' : '待开始'}`}>
                           <div
@@ -369,13 +366,6 @@ export default function ProjectDetail() {
           </Form.Item>
           <Form.Item name="is_single_source" label="是否单一来源" rules={[{ required: true, message: '请选择' }]}>
             <Select options={SINGLE_SOURCE_OPTIONS} />
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.is_single_source !== cur.is_single_source}>
-            {({ getFieldValue }) => getFieldValue('is_single_source') !== '是' && (
-              <Form.Item name="budget_amount" label="预算金额" rules={[{ required: true, message: '请选择预算金额档位' }]}>
-                <Select options={BUDGET_AMOUNT_OPTIONS} />
-              </Form.Item>
-            )}
           </Form.Item>
           <Form.Item name="procurement_method" label="采购方式" rules={[{ required: true, message: '请选择采购方式' }]}>
             <Select options={PROCUREMENT_METHOD_OPTIONS} />
