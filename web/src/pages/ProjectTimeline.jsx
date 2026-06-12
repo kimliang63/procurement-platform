@@ -22,20 +22,22 @@ function isDelayed(node) {
 function ProjectCard({ project, nodes, issueCount, onDelete }) {
   const navigate = useNavigate()
   const f = project.fields || {}
-  const completedCount = nodes.filter(n => n.fields?.actual_date).length
-  const total = nodes.length || 1
+  const visibleKeys = getVisibleStages(f.is_single_source, f.budget_amount, f.procurement_method)
+  const visibleNodes = nodes.filter(n => visibleKeys.includes(n.fields?.stage_key))
+  const completedCount = visibleNodes.filter(n => n.fields?.actual_date).length
+  const total = visibleNodes.length || 1
   const progress = Math.round((completedCount / total) * 100)
 
   const currentNodeIdx = (() => {
-    const inProgress = nodes.findIndex(n => n.fields?.status === 'in_progress')
+    const inProgress = visibleNodes.findIndex(n => n.fields?.status === 'in_progress')
     if (inProgress >= 0) return inProgress
     const lastCompleted = (() => {
-      for (let i = nodes.length - 1; i >= 0; i--) {
-        if (nodes[i].fields?.actual_date) return i
+      for (let i = visibleNodes.length - 1; i >= 0; i--) {
+        if (visibleNodes[i].fields?.actual_date) return i
       }
       return -1
     })()
-    return lastCompleted + 1 < nodes.length ? lastCompleted + 1 : nodes.length - 1
+    return lastCompleted + 1 < visibleNodes.length ? lastCompleted + 1 : visibleNodes.length - 1
   })()
 
   return (
@@ -58,8 +60,8 @@ function ProjectCard({ project, nodes, issueCount, onDelete }) {
 
       <div style={styles.timelineWrap}>
         <div style={styles.timeline}>
-          {STAGE_KEYS.map((key, idx) => {
-            const node = nodes.find(n => n.fields?.stage_key === key)
+          {visibleKeys.map((key, idx) => {
+            const node = visibleNodes.find(n => n.fields?.stage_key === key)
             const status = node?.fields?.actual_date ? 'completed' : idx === currentNodeIdx ? 'in_progress' : 'pending'
             const delayed = isDelayed(node)
             const label = STAGE_MAP[key]
@@ -71,7 +73,7 @@ function ProjectCard({ project, nodes, issueCount, onDelete }) {
                 <div style={styles.nodeCircleWrap}>
                   {idx > 0 && <div style={{
                     ...styles.line,
-                    background: status === 'completed' || (idx <= currentNodeIdx && nodes[idx - 1]?.fields?.actual_date)
+                    background: status === 'completed' || (idx <= currentNodeIdx && visibleNodes[idx - 1]?.fields?.actual_date)
                       ? NODE_STATUS_COLORS.completed : '#e8e8e8',
                   }} />}
                   <div style={{

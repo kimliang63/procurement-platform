@@ -139,7 +139,7 @@ async function handleMessage(event) {
     if (!params.name) missing.push('项目名称')
     if (!params.category) missing.push('采购品类')
     if (!params.department) missing.push('所属部门')
-    if (!params.budget) missing.push('预算')
+    if (params.budget === undefined || params.budget === null || params.budget === '') missing.push('预算')
     if (!params.isSingleSource) missing.push('是否单一来源')
     if (!params.budgetAmount && params.isSingleSource !== '是') missing.push('预算金额（<100万/≥100万）')
     if (!params.procurementMethod) missing.push('采购方式（框架类/项目类）')
@@ -360,6 +360,19 @@ async function handleCardAction(action, chatId, senderId) {
         const data = await callTool('create_project', params)
         if (!data || !data.record_id) {
           throw new Error('项目创建失败：未返回有效数据')
+        }
+        // 初始化节点
+        if (data.record_id) {
+          try {
+            await callTool('init_project_nodes', {
+              projectId: data.record_id,
+              isSingleSource: params.isSingleSource,
+              budgetAmount: params.budgetAmount,
+              procurementMethod: params.procurementMethod,
+            })
+          } catch (e) {
+            console.error('Init project nodes error:', e.message)
+          }
         }
         if (chatId && data.record_id) {
           try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
