@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
 const { listRecords } = require('../feishu/bitable')
+const { sanitizeFilterValue } = require('../utils/sanitize')
 
 // Batch fetch nodes for multiple projects (single Bitable query)
 router.get('/batch', async (req, res) => {
@@ -10,8 +11,8 @@ router.get('/batch', async (req, res) => {
     if (ids.length === 0) return res.json({ data: {} })
 
     const filterExpr = ids.length === 1
-      ? `CurrentValue.[project_id]="${ids[0]}"`
-      : `OR(${ids.map(id => `CurrentValue.[project_id]="${id}"`).join(',')})`
+      ? `CurrentValue.[project_id]="${sanitizeFilterValue(ids[0])}"`
+      : `OR(${ids.map(id => `CurrentValue.[project_id]="${sanitizeFilterValue(id)}"`).join(',')})`
 
     const nodes = await listRecords('nodes', { filter: filterExpr })
     const result = {}

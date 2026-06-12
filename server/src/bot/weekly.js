@@ -4,36 +4,41 @@ const client = require('../feishu/client')
 const { listRecords } = require('../feishu/bitable')
 const { buildAdminWeeklyCard, buildGroupWeeklyCard } = require('./cards')
 
-async function generateAdminWeeklyReport() {
-  const projects = await callTool('list_projects')
-
+function getWeekRange() {
   const now = new Date()
   const weekStart = new Date(now)
   weekStart.setDate(now.getDate() - now.getDay())
   weekStart.setHours(0, 0, 0, 0)
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekStart.getDate() + 7)
+  return { weekStart, weekEnd }
+}
 
-  function inRange(dateStr) {
-    if (!dateStr) return false
-    const d = new Date(dateStr)
-    return d >= weekStart && d < weekEnd
-  }
+function inWeekRange(dateStr, weekStart, weekEnd) {
+  if (!dateStr) return false
+  const d = new Date(dateStr)
+  return d >= weekStart && d < weekEnd
+}
+
+async function generateAdminWeeklyReport() {
+  const projects = await callTool('list_projects')
+  const { weekStart, weekEnd } = getWeekRange()
 
   const activeProjects = projects.filter(p => {
     const f = p.fields || {}
-    return inRange(f.plan_start) || inRange(f.plan_end) || f.status === '进行中'
+    return inWeekRange(f.plan_start, weekStart, weekEnd)
+      || inWeekRange(f.plan_end, weekStart, weekEnd)
+      || f.status === '进行中'
   })
 
+  // 批量拉取所有 nodes（替代 N+1 查询）
+  const allNodes = await listRecords('nodes')
   const projectNodeMap = {}
-  for (const p of activeProjects) {
-    try {
-      const nodes = await callTool('list_project_nodes', { projectId: p.record_id })
-      projectNodeMap[p.record_id] = nodes
-    } catch {
-      projectNodeMap[p.record_id] = []
-    }
-  }
+  activeProjects.forEach(p => { projectNodeMap[p.record_id] = [] })
+  allNodes.forEach(n => {
+    const pid = n.fields?.project_id
+    if (projectNodeMap[pid]) projectNodeMap[pid].push(n)
+  })
 
   return buildAdminWeeklyCard(activeProjects, projectNodeMap, projects.length)
 }
@@ -46,22 +51,12 @@ async function generateGroupWeeklyReport(chatId) {
   const project = await callTool('get_project', { projectId })
   const nodes = await callTool('list_project_nodes', { projectId })
 
-  const now = new Date()
-  const weekStart = new Date(now)
-  weekStart.setDate(now.getDate() - now.getDay())
-  weekStart.setHours(0, 0, 0, 0)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 7)
-
-  function inRange(dateStr) {
-    if (!dateStr) return false
-    const d = new Date(dateStr)
-    return d >= weekStart && d < weekEnd
-  }
-
+  const { weekStart, weekEnd } = getWeekRange()
   const recentNodes = nodes.filter(n => {
     const f = n.fields || {}
-    return inRange(f.actual_date) || inRange(f.plan_start) || inRange(f.plan_end)
+    return inWeekRange(f.actual_date, weekStart, weekEnd)
+      || inWeekRange(f.plan_start, weekStart, weekEnd)
+      || inWeekRange(f.plan_end, weekStart, weekEnd)
   })
 
   return buildGroupWeeklyCard(project, nodes, recentNodes)

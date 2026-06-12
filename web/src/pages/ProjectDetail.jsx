@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip } from 'antd'
+import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip, Spin } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
 import PermissionGuard from '../components/PermissionGuard'
-import { STAGE_MAP, NODE_STATUS_COLORS, STAGE_KEYS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
+import { STAGE_MAP, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
@@ -46,7 +46,10 @@ export default function ProjectDetail() {
       setNodes(nRes.data?.data || [])
       setIssues(iRes.data?.data || [])
       setUsers(uRes.data?.data || [])
-    } catch {}
+    } catch (e) {
+      console.error('Failed to load project:', e)
+      message.error('加载项目数据失败')
+    }
     setLoading(false)
   }
 
@@ -171,6 +174,7 @@ export default function ProjectDetail() {
 
   const getNodeIssues = (stageKey) => issues.filter(i => i.fields?.stage_key === stageKey)
 
+  if (loading && !project) return <div style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>
   if (!project) return null
   const f = project.fields
   const visibleKeys = getVisibleStages(f?.is_single_source, f?.budget, f?.procurement_method)

@@ -49,6 +49,7 @@ export const updateIssue = (id, data) => api.put(`/issues/${id}`, data)
 export const deleteIssue = (id) => api.delete(`/issues/${id}`)
 
 export const getUsers = () => api.get('/auth/users')
+export const updateUserRole = (recordId, role) => api.put('/auth/role', { record_id: recordId, role })
 
 export const getStats = () => api.get('/stats')
 

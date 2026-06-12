@@ -72,9 +72,31 @@ name(项目名称)、category(采购品类:设备/材料/服务/其他)、owner(
 - 纯问答：{"intent": null, "params": {}, "message": "回答内容"}
 - 追问：{"intent": "create_project", "params": {"name": "测试"}, "message": "好的，请问采购品类是什么？"}`
 
-// 每个用户的对话状态
+// 每个用户的对话状态（30分钟无活动自动清理）
 const userSessions = new Map()
 const MAX_HISTORY = 20
+const SESSION_TTL = 30 * 60 * 1000
+
+function getSession(userId) {
+  const session = userSessions.get(userId)
+  if (session && Date.now() - session.lastActive > SESSION_TTL) {
+    userSessions.delete(userId)
+    return null
+  }
+  return session
+}
+
+function setSession(userId, data) {
+  userSessions.set(userId, { ...data, lastActive: Date.now() })
+}
+
+// 定期清理过期会话
+setInterval(() => {
+  const now = Date.now()
+  for (const [userId, session] of userSessions) {
+    if (now - session.lastActive > SESSION_TTL) userSessions.delete(userId)
+  }
+}, 600000)
 
 // 从 LLM 响应中提取 JSON（处理 markdown 包裹或混在文本中的情况）
 function extractJson(text) {
@@ -198,10 +220,11 @@ async function understandIntent(userMessage, senderId = 'default', senderName = 
   const baseUrl = process.env.LLM_BASE_URL || 'https://api.deepseek.com'
 
   // 获取会话
-  if (!userSessions.has(senderId)) {
-    userSessions.set(senderId, { history: [], pendingAction: null, currentProjectId: null })
+  let session = getSession(senderId)
+  if (!session) {
+    session = { history: [], pendingAction: null, currentProjectId: null }
+    setSession(senderId, session)
   }
-  const session = userSessions.get(senderId)
 
   // 检测新会话开始：用户发送创建类指令且当前没有进行中的操作
   const isNewFlow = /创建|新建|新增/.test(userMessage) && !session.pendingAction
@@ -290,10 +313,6 @@ async function understandIntent(userMessage, senderId = 'default', senderName = 
     // 保留 LLM 原文作为回复，而非固定错误文本
     return { intent: null, params: {}, message: text || '抱歉，请再说一次。' }
   }
-}
-
-function getSession(senderId) {
-  return userSessions.get(senderId)
 }
 
 module.exports = { understandIntent, getSession, extractJson, parseFromPlainText }

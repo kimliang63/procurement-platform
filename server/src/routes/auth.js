@@ -24,11 +24,9 @@ router.get('/feishu/callback', async (req, res) => {
       data: { grant_type: 'authorization_code', code },
     })
 
-    // Log the full response structure for debugging
+    // Log response structure (redact sensitive fields)
     console.log('[Auth] Token response code:', tokenRes.code)
     console.log('[Auth] Token response msg:', tokenRes.msg)
-    console.log('[Auth] Token data keys:', tokenRes.data ? Object.keys(tokenRes.data) : 'null')
-    console.log('[Auth] Token data:', JSON.stringify(tokenRes.data, null, 2))
 
     const tokenData = tokenRes.data || {}
     // Handle both flat and nested response formats
@@ -132,20 +130,28 @@ router.put('/role', async (req, res) => {
     await updateRecord('users', record_id, { role })
     res.json({ success: true })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('Update role error:', e.message)
+    res.status(500).json({ error: '更新角色失败' })
   }
 })
 
-// 获取所有用户
+// 获取所有用户（仅管理员）
 router.get('/users', async (req, res) => {
   const authHeader = req.headers.authorization
-  if (!authHeader) return res.status(401).json({ error: 'No token' })
+  if (!authHeader) return res.status(401).json({ error: '未登录' })
 
   try {
+    const token = authHeader.replace('Bearer ', '')
+    const userInfo = await getFeishuUserInfo(token)
     const users = await listRecords('users')
+    const operator = users.find(u => u.fields.feishu_open_id === userInfo.open_id)
+    if (!operator || operator.fields.role !== 'admin') {
+      return res.status(403).json({ error: '需要管理员权限' })
+    }
     res.json({ data: users })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('List users error:', e.message)
+    res.status(500).json({ error: '查询用户失败' })
   }
 })
 

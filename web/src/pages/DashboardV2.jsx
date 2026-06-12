@@ -30,14 +30,16 @@ export default function DashboardV2() {
     setLoading(true)
     getStats()
       .then(res => setStats(res.data?.data))
-      .catch(() => {})
+      .catch((e) => {
+        console.error('Failed to load stats:', e)
+      })
       .finally(() => setLoading(false))
   }, [])
 
   if (loading && !stats) return <div style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>
   if (!stats) return null
 
-  const { basic, buStats, ownerStats, taskTypeStats } = stats
+  const { basic = {}, buStats = {}, ownerStats = {}, taskTypeStats = {} } = stats || {}
 
   // BU bar chart data (doing > 0 only)
   const buBarData = Object.entries(buStats)

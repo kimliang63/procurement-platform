@@ -40,8 +40,9 @@ app.use('/api/weekly', weeklyRouter)
 // Stats API
 app.use('/api/stats', statsRouter)
 
-// Bot Webhook - 消息去重
+// Bot Webhook - 消息去重（最多保留 10000 条）
 const processedEvents = new Set()
+const MAX_EVENTS = 10000
 
 // 群聊免@会话追踪：chatId:{userId: lastActiveTime}
 const chatActiveUsers = new Map()
@@ -77,8 +78,16 @@ app.post('/webhook/bot', async (req, res) => {
   const { type, challenge, event, header } = req.body
   console.log(`[${new Date().toISOString()}] /webhook/bot:`, header?.event_type || type || 'unknown')
 
+  // 飞书事件订阅验证
   if (type === 'url_verification') {
     return res.json({ challenge })
+  }
+
+  // 验证事件 token（防止伪造 webhook）
+  const verifyToken = process.env.FEISHU_VERIFY_TOKEN
+  if (verifyToken && header?.token && header.token !== verifyToken) {
+    console.warn('[Webhook] Token verification failed')
+    return res.status(403).json({ error: 'Invalid token' })
   }
 
   // 消息去重
@@ -87,6 +96,11 @@ app.post('/webhook/bot', async (req, res) => {
     return res.json({ success: true })
   }
   if (eventId) {
+    // 防止内存泄漏：超过上限时清理最早的条目
+    if (processedEvents.size >= MAX_EVENTS) {
+      const first = processedEvents.values().next().value
+      processedEvents.delete(first)
+    }
     processedEvents.add(eventId)
     // 5分钟后清理
     setTimeout(() => processedEvents.delete(eventId), 300000)
@@ -171,6 +185,13 @@ app.post('/webhook/card', async (req, res) => {
   // URL验证
   if (type === 'url_verification') {
     return res.json({ challenge })
+  }
+
+  // 验证事件 token
+  const verifyToken = process.env.FEISHU_VERIFY_TOKEN
+  if (verifyToken && header?.token && header.token !== verifyToken) {
+    console.warn('[Webhook/card] Token verification failed')
+    return res.status(403).json({ error: 'Invalid token' })
   }
 
   // 事件去重（复用 /webhook/bot 的 processedEvents）

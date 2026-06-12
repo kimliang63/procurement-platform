@@ -158,7 +158,7 @@ async function handleMessage(event) {
           if (duplicate) {
             return { text: `项目名称"${params.name}"已存在（编号：${duplicate.fields?.no}），请换个名称` }
           }
-        } catch {}
+        } catch (e) { console.error('Duplicate check error:', e.message) }
       }
       return { text: result.message || `还缺少以下信息：\n${missing.map(m => `- ${m}`).join('\n')}\n请补充告诉我` }
     }
@@ -177,7 +177,7 @@ async function handleMessage(event) {
         if (duplicate) {
           return { text: `项目名称"${params.name}"已存在（编号：${duplicate.fields?.no}），请换个名称` }
         }
-      } catch {}
+      } catch (e) { console.error('Duplicate check error:', e.message) }
     }
 
     // 信息完整 → 始终弹确认卡片，由卡片按钮执行创建
@@ -206,12 +206,13 @@ async function handleMessage(event) {
         // 按名称查找项目
         try {
           const projects = await callTool('list_projects')
-          const match = projects.find(p => p.fields?.name === result.params.name || p.fields?.name?.includes(result.params.name))
+          const match = projects.find(p => p.fields?.name === result.params.name)
+            || projects.find(p => p.fields?.name?.includes(result.params.name))
           if (match) {
             result.params = { ...result.params, projectId: match.record_id }
             if (session) session.currentProjectId = match.record_id
           }
-        } catch {}
+        } catch (e) { console.error('Project lookup error:', e.message) }
       }
       // 仍然没有 projectId，提示用户
       if (!result.params?.projectId) {
@@ -352,7 +353,7 @@ async function handleCardAction(action, chatId, senderId) {
         }
         return { success: false, error: 'duplicate_name' }
       }
-    } catch {}
+    } catch (e) { console.error('Card action duplicate check error:', e.message) }
     // 后台异步创建项目，不阻塞 callback 响应
     ;(async () => {
       try {
@@ -374,7 +375,7 @@ async function handleCardAction(action, chatId, senderId) {
           }
         }
         if (chatId && data.record_id) {
-          try { await bindGroup(chatId, data.fields?.name, senderId) } catch {}
+          try { await bindGroup(chatId, data.fields?.name, senderId) } catch (e) { console.error('Auto-bind group error:', e.message) }
         }
         if (chatId) {
           try {

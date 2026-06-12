@@ -8,7 +8,8 @@ router.get('/', filterByOwner, async (req, res) => {
     const projects = await callTool('list_projects', req.query)
     res.json({ data: projects })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('List projects error:', e.message)
+    res.status(500).json({ error: '查询项目失败' })
   }
 })
 
@@ -17,7 +18,8 @@ router.get('/:id', async (req, res) => {
     const project = await callTool('get_project', { projectId: req.params.id })
     res.json({ data: project })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('Get project error:', e.message)
+    res.status(500).json({ error: '查询项目失败' })
   }
 })
 
@@ -35,7 +37,8 @@ router.post('/', async (req, res) => {
     }
     res.json({ data: project })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('Create project error:', e.message)
+    res.status(500).json({ error: '创建项目失败' })
   }
 })
 
@@ -44,7 +47,8 @@ router.put('/:id', async (req, res) => {
     const project = await callTool('update_project', { projectId: req.params.id, ...req.body })
     res.json({ data: project })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('Update project error:', e.message)
+    res.status(500).json({ error: '更新项目失败' })
   }
 })
 
@@ -53,7 +57,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     await callTool('delete_project', { projectId: req.params.id })
     res.json({ success: true })
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    console.error('Delete project error:', e.message)
+    res.status(500).json({ error: '删除项目失败' })
   }
 })
 

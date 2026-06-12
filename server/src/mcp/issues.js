@@ -1,4 +1,5 @@
 const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
+const { sanitizeFilterValue } = require('../utils/sanitize')
 
 async function createIssue(params) {
   const fields = {
@@ -24,10 +25,10 @@ async function updateIssue(params) {
 
 async function listIssues(params = {}) {
   const conditions = []
-  if (params.projectId) conditions.push(`CurrentValue.[project_id]="${params.projectId}"`)
-  if (params.status) conditions.push(`CurrentValue.[status]="${params.status}"`)
-  if (params.priority) conditions.push(`CurrentValue.[priority]="${params.priority}"`)
-  if (params.owner) conditions.push(`CurrentValue.[assignee]="${params.owner}"`)
+  if (params.projectId) conditions.push(`CurrentValue.[project_id]="${sanitizeFilterValue(params.projectId)}"`)
+  if (params.status) conditions.push(`CurrentValue.[status]="${sanitizeFilterValue(params.status)}"`)
+  if (params.priority) conditions.push(`CurrentValue.[priority]="${sanitizeFilterValue(params.priority)}"`)
+  if (params.owner) conditions.push(`CurrentValue.[assignee]="${sanitizeFilterValue(params.owner)}"`)
 
   const filterExpr = conditions.length > 1
     ? `AND(${conditions.join(',')})`

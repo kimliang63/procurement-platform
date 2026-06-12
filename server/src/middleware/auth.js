@@ -1,9 +1,11 @@
 const { getFeishuUserInfo } = require('../feishu/user')
 const { listRecords } = require('../feishu/bitable')
+const { sanitizeFilterValue } = require('../utils/sanitize')
 
-// Simple in-memory cache for user lookups
+// Simple in-memory cache for user lookups (max 500 entries)
 const userCache = new Map()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const MAX_CACHE = 500
 
 // Extract user from token and attach to req.user
 async function extractUser(req, res, next) {
@@ -27,9 +29,10 @@ async function extractUser(req, res, next) {
       return next()
     }
 
-    // Look up user role from bitable
-    const users = await listRecords('users')
-    const user = users.find(u => u.fields.feishu_open_id === openId)
+    // Look up user by open_id filter (not full table scan)
+    const filterExpr = `CurrentValue.[feishu_open_id]="${sanitizeFilterValue(openId)}"`
+    const users = await listRecords('users', { filter: filterExpr })
+    const user = users[0]
     if (!user) {
       return res.status(401).json({ error: '用户不存在' })
     }
@@ -41,7 +44,11 @@ async function extractUser(req, res, next) {
       record_id: user.record_id,
     }
 
-    // Cache the result
+    // Cache with max size enforcement
+    if (userCache.size >= MAX_CACHE) {
+      const first = userCache.keys().next().value
+      userCache.delete(first)
+    }
     userCache.set(openId, { user: userData, timestamp: Date.now() })
 
     req.user = userData
@@ -61,8 +68,6 @@ function requireAdmin(req, res, next) {
 }
 
 // Filter by owner: admin sees all, buyer only sees own
-// Note: Using name for ownership matching. Schema migration to open_id recommended.
-// Current data model stores owner/assignee as display name.
 function filterByOwner(req, res, next) {
   if (req.user.role === 'admin') {
     return next()

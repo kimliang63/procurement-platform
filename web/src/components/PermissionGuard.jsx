@@ -1,7 +1,13 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 
 export default function PermissionGuard({ children, requiredRole = 'admin' }) {
-  const user = JSON.parse(localStorage.getItem('feishu_user') || '{}')
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('feishu_user') || '{}')
+    } catch {
+      return {}
+    }
+  }, [])
   if (user.role !== requiredRole) {
     return null
   }

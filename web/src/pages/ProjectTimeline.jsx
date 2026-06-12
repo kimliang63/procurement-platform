@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Space, message } from 'antd'
 import { PlusOutlined, DeleteOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, createProject, deleteProject, getUsers, getBatchNodes, getIssues } from '../api'
-import { STAGE_MAP, STAGE_KEYS, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
+import { STAGE_MAP, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
 
 const STATUS_COLORS = { '进行中': 'blue', '项目完成': 'green', '项目暂停': 'orange', '项目取消': 'red' }
 
@@ -126,7 +126,7 @@ export default function ProjectTimeline() {
   const [form] = Form.useForm()
   const navigate = useNavigate()
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
       const [pRes, uRes, iRes] = await Promise.all([getProjects(), getUsers(), getIssues()])
@@ -147,11 +147,14 @@ export default function ProjectTimeline() {
         const nRes = await getBatchNodes(ids)
         setProjectNodes(nRes.data?.data || {})
       }
-    } catch {}
+    } catch (e) {
+      console.error('Failed to load projects:', e)
+      message.error('加载项目数据失败')
+    }
     setLoading(false)
-  }
+  }, [])
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => { fetchAll() }, [fetchAll])
 
   const handleCreate = async () => {
     try {

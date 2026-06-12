@@ -1,4 +1,5 @@
 const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
+const { sanitizeFilterValue } = require('../utils/sanitize')
 
 async function createProject(params) {
   const existing = await listRecords('projects') || []
@@ -10,7 +11,12 @@ async function createProject(params) {
   const prefix = company === 'GOFO' ? 'GFCG' : 'CG'
   const year = new Date().getFullYear()
   const yearProjects = existing.filter(p => p.fields?.no?.startsWith(`${prefix}-${year}`))
-  const seq = String(yearProjects.length + 1).padStart(3, '0')
+  // 使用最大序号+1，避免删除项目后序号重复
+  const maxSeq = yearProjects.reduce((max, p) => {
+    const n = parseInt(p.fields?.no?.split('-')[2]) || 0
+    return Math.max(max, n)
+  }, 0)
+  const seq = String(maxSeq + 1).padStart(3, '0')
   const projectNo = `${prefix}-${year}-${seq}`
 
   const fields = {
@@ -36,10 +42,11 @@ async function createProject(params) {
 async function updateProject(params) {
   let { projectId, ...rest } = params
 
-  // 兜底：如果没有 projectId，按名称查找
+  // 兜底：如果没有 projectId，按名称查找（精确优先）
   if (!projectId && rest.projectName) {
     const all = await listRecords('projects')
-    const match = all.find(p => p.fields?.name === rest.projectName || p.fields?.name?.includes(rest.projectName))
+    const match = all.find(p => p.fields?.name === rest.projectName)
+      || all.find(p => p.fields?.name?.includes(rest.projectName))
     if (match) projectId = match.record_id
   }
 
@@ -73,8 +80,8 @@ async function getProject(params) {
 
 async function listProjects(params = {}) {
   const conditions = []
-  if (params.owner) conditions.push(`CurrentValue.[owner]="${params.owner}"`)
-  if (params.status) conditions.push(`CurrentValue.[status]="${params.status}"`)
+  if (params.owner) conditions.push(`CurrentValue.[owner]="${sanitizeFilterValue(params.owner)}"`)
+  if (params.status) conditions.push(`CurrentValue.[status]="${sanitizeFilterValue(params.status)}"`)
 
   const filterExpr = conditions.length > 1
     ? `AND(${conditions.join(',')})`

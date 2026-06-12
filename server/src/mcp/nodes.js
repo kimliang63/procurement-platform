@@ -1,6 +1,7 @@
 const { listRecords, getRecord, createRecord, updateRecord, TABLE_IDS } = require('../feishu/bitable')
 const client = require('../feishu/client')
 const { getVisibleNodes, getNodeRule, getNodeValidation } = require('./rules')
+const { sanitizeFilterValue } = require('../utils/sanitize')
 
 const STAGE_MAP = {
   requirement: { label: '需求确认', order: 1 },
@@ -109,7 +110,7 @@ async function advanceNode(params) {
   const [project, nodes] = await Promise.all([
     require('./projects').getProject({ projectId }),
     listRecords('nodes', {
-      filter: `AND(CurrentValue.[project_id]="${projectId}", CurrentValue.[stage_key]="${stageKey}")`
+      filter: `AND(CurrentValue.[project_id]="${sanitizeFilterValue(projectId)}", CurrentValue.[stage_key]="${sanitizeFilterValue(stageKey)}")`
     }),
   ])
 
@@ -197,7 +198,7 @@ async function markNodeAbnormal(params) {
 async function listProjectNodes(params) {
   const { projectId } = params
   const nodes = await listRecords('nodes', {
-    filter: `CurrentValue.[project_id]="${projectId}"`
+    filter: `CurrentValue.[project_id]="${sanitizeFilterValue(projectId)}"`
   }) || []
   return nodes
     .sort((a, b) => (STAGE_MAP[a.fields?.stage_key]?.order || 0) - (STAGE_MAP[b.fields?.stage_key]?.order || 0))

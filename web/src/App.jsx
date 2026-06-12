@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Button, Card, Result } from 'antd'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import DashboardV2 from './pages/DashboardV2'
 import ProjectTimeline from './pages/ProjectTimeline'
@@ -27,8 +28,12 @@ function AuthCallback() {
       // Save user info from callback params
       try {
         const user = JSON.parse(decodeURIComponent(userStr))
-        localStorage.setItem('feishu_user', JSON.stringify(user))
-      } catch {}
+        if (user && typeof user === 'object' && user.name) {
+          localStorage.setItem('feishu_user', JSON.stringify(user))
+        }
+      } catch (e) {
+        console.error('Failed to parse user data:', e)
+      }
 
       // Validate token by calling /api/auth/me first, then save token + navigate
       const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -95,17 +100,19 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter basename="/">
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<DashboardV2 />} />
-          <Route path="projects" element={<ProjectTimeline />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="issues" element={<IssueTracker />} />
-          <Route path="admin" element={<AdminUsers />} />
-        </Route>
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+            <Route index element={<DashboardV2 />} />
+            <Route path="projects" element={<ProjectTimeline />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="issues" element={<IssueTracker />} />
+            <Route path="admin" element={<AdminUsers />} />
+          </Route>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

@@ -1,4 +1,5 @@
 const { callTool } = require('../mcp')
+const { listRecords } = require('../feishu/bitable')
 
 // Get group binding by chat ID
 async function getGroupBinding(chatId) {
@@ -8,9 +9,10 @@ async function getGroupBinding(chatId) {
 
 // Bind group to project
 async function bindGroup(chatId, projectName, senderId) {
-  // Find project by name
+  // Find project by exact name match first, fallback to includes
   const projects = await callTool('list_projects')
-  const project = projects.find(p => p.fields?.name?.includes(projectName))
+  const project = projects.find(p => p.fields?.name === projectName)
+    || projects.find(p => p.fields?.name?.includes(projectName))
   if (!project) {
     return { success: false, message: `未找到项目"${projectName}"` }
   }
@@ -41,10 +43,15 @@ async function unbindGroup(chatId) {
   return { success: true, projectName: binding.fields?.project_name }
 }
 
-// Check if user is project owner
+// Check if user is project owner (userId is open_id, need to look up name)
 async function isProjectOwner(projectId, userId) {
-  const project = await callTool('get_project', { projectId })
-  return project?.fields?.owner === userId
+  const [project, users] = await Promise.all([
+    callTool('get_project', { projectId }),
+    listRecords('users'),
+  ])
+  const user = users.find(u => u.fields?.feishu_open_id === userId)
+  if (!user) return false
+  return project?.fields?.owner === user.fields?.name
 }
 
 module.exports = { getGroupBinding, bindGroup, unbindGroup, isProjectOwner }

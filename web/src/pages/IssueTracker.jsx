@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Table, Button, Tag, Space, Modal, Form, Input, Select, Popconfirm, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { getIssues, createIssue, updateIssue, deleteIssue, getProjects, getUsers } from '../api'
@@ -15,18 +15,21 @@ export default function IssueTracker() {
   const [filterPriority, setFilterPriority] = useState(null)
   const [form] = Form.useForm()
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       const [iRes, pRes, uRes] = await Promise.all([getIssues(), getProjects(), getUsers()])
       setIssues(iRes.data?.data || [])
       setProjects(pRes.data?.data || [])
       setUsers(uRes.data?.data || [])
-    } catch {}
+    } catch (e) {
+      console.error('Failed to load issues:', e)
+      message.error('加载数据失败')
+    }
     setLoading(false)
-  }
+  }, [])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const filtered = issues.filter(i => {
     if (filterStatus && i.fields?.status !== filterStatus) return false
