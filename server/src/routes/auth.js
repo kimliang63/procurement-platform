@@ -135,19 +135,13 @@ router.put('/role', async (req, res) => {
   }
 })
 
-// 获取所有用户（仅管理员）
+// 获取所有用户（用于下拉选择，不需要管理员权限）
 router.get('/users', async (req, res) => {
   const authHeader = req.headers.authorization
   if (!authHeader) return res.status(401).json({ error: '未登录' })
 
   try {
-    const token = authHeader.replace('Bearer ', '')
-    const userInfo = await getFeishuUserInfo(token)
     const users = await listRecords('users')
-    const operator = users.find(u => u.fields.feishu_open_id === userInfo.open_id)
-    if (!operator || operator.fields.role !== 'admin') {
-      return res.status(403).json({ error: '需要管理员权限' })
-    }
     res.json({ data: users })
   } catch (e) {
     console.error('List users error:', e.message)
