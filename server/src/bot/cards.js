@@ -223,8 +223,7 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日周报`
 
-  // 表格行
-  const rows = activeProjects.map(p => {
+  const projectElements = activeProjects.map(p => {
     const nodes = projectNodeMap[p.record_id] || []
     const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
     nodes.forEach(n => { counts[getNodeStatus(n)]++ })
@@ -242,16 +241,44 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
     if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
     if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
 
-    // 进度条
     const filledCount = Math.round(percent / 10)
     const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
 
-    return `| ${statusEmoji} ${p.fields?.name} | ${p.fields?.owner || '—'} | ${currentLabel} | ${statusParts.join(' ')} | ${progressBar} ${percent}% |`
+    return {
+      tag: 'column_set',
+      flex_mode: 'none',
+      background_style: 'default',
+      columns: [
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**\n${p.fields?.no}` } },
+          ],
+        },
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `**${p.fields?.owner || '—'}**\n${currentLabel}` } },
+          ],
+        },
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `${statusParts.join(' ')}\n${progressBar} **${percent}%**` } },
+          ],
+        },
+      ],
+    }
   })
-
-  const tableMarkdown = activeProjects.length > 0
-    ? `| 项目 | 负责人 | 阶段 | 节点状态 | 进度 |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}`
-    : '本周无项目变动。'
 
   return {
     config: { wide_screen_mode: true },
@@ -268,7 +295,22 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
         ],
       },
       { tag: 'hr' },
-      { tag: 'div', text: { tag: 'lark_md', content: tableMarkdown } },
+      // 表头
+      {
+        tag: 'column_set',
+        flex_mode: 'none',
+        background_style: 'grey',
+        columns: [
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**项目**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**负责人 / 阶段**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**状态 / 进度**' } }] },
+        ],
+      },
+      // 项目行
+      ...(activeProjects.length > 0
+        ? projectElements
+        : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无项目变动。' } }]
+      ),
     ],
   }
 }
@@ -373,7 +415,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日`
 
-  const rows = myProjects.map(p => {
+  const projectElements = myProjects.map(p => {
     const nodes = projectNodeMap[p.record_id] || []
     const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
     nodes.forEach(n => { counts[getNodeStatus(n)]++ })
@@ -394,12 +436,41 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
     const filledCount = Math.round(percent / 10)
     const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
 
-    return `| ${statusEmoji} ${p.fields?.name} | ${currentLabel} | ${statusParts.join(' ')} | ${progressBar} ${percent}% |`
+    return {
+      tag: 'column_set',
+      flex_mode: 'none',
+      background_style: 'default',
+      columns: [
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**\n${p.fields?.no}` } },
+          ],
+        },
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `**${currentLabel}**` } },
+          ],
+        },
+        {
+          tag: 'column',
+          width: 'weighted',
+          weight: 1,
+          vertical_align: 'top',
+          elements: [
+            { tag: 'div', text: { tag: 'lark_md', content: `${statusParts.join(' ')}\n${progressBar} **${percent}%**` } },
+          ],
+        },
+      ],
+    }
   })
-
-  const tableMarkdown = myProjects.length > 0
-    ? `| 项目 | 阶段 | 节点状态 | 进度 |\n| --- | --- | --- | --- |\n${rows.join('\n')}`
-    : '暂无负责的项目。'
 
   return {
     config: { wide_screen_mode: true },
@@ -416,7 +487,22 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
         ],
       },
       { tag: 'hr' },
-      { tag: 'div', text: { tag: 'lark_md', content: tableMarkdown } },
+      // 表头
+      {
+        tag: 'column_set',
+        flex_mode: 'none',
+        background_style: 'grey',
+        columns: [
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**项目**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**阶段**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**状态 / 进度**' } }] },
+        ],
+      },
+      // 项目行
+      ...(myProjects.length > 0
+        ? projectElements
+        : [{ tag: 'div', text: { tag: 'lark_md', content: '暂无负责的项目。' } }]
+      ),
     ],
   }
 }
