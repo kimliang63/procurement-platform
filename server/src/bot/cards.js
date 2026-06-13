@@ -241,9 +241,6 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
     if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
     if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
 
-    const filledCount = Math.round(percent / 10)
-    const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
-
     return {
       tag: 'column_set',
       flex_mode: 'none',
@@ -273,7 +270,7 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
           weight: 1,
           vertical_align: 'top',
           elements: [
-            { tag: 'div', text: { tag: 'lark_md', content: `${statusParts.join(' ')}\n${progressBar} **${percent}%**` } },
+            { tag: 'div', text: { tag: 'lark_md', content: `进度：${counts.completed}/${nodes.length} **${percent}%**` } },
           ],
         },
       ],
@@ -295,7 +292,6 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
         ],
       },
       { tag: 'hr' },
-      // 表头
       {
         tag: 'column_set',
         flex_mode: 'none',
@@ -303,10 +299,9 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
         columns: [
           { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**项目**' } }] },
           { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**负责人 / 阶段**' } }] },
-          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**状态 / 进度**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**进度**' } }] },
         ],
       },
-      // 项目行
       ...(activeProjects.length > 0
         ? projectElements
         : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无项目变动。' } }]
@@ -387,10 +382,9 @@ function buildGroupWeeklyCard(project, nodes, recentNodes) {
           { is_short: true, text: { tag: 'lark_md', content: `**🎯 当前阶段**\n${currentLabel}` } },
         ],
       },
-      // 进度条 + 状态统计
+      // 进度
       { tag: 'hr' },
-      { tag: 'div', text: { tag: 'lark_md', content: `**进度** ${progressBar} **${percent}%**` } },
-      { tag: 'div', text: { tag: 'lark_md', content: `✅ ${counts.completed}　🔄 ${counts.in_progress}　⏳ ${counts.pending}　⚠️ ${counts.overdue + counts.blocked}` } },
+      { tag: 'div', text: { tag: 'lark_md', content: `进度：${counts.completed}/${nodes.length} **${percent}%**` } },
       // 节点详情
       { tag: 'hr' },
       { tag: 'div', text: { tag: 'lark_md', content: '**📌 节点详情**' } },
@@ -433,9 +427,6 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
     if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
     if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
 
-    const filledCount = Math.round(percent / 10)
-    const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
-
     return {
       tag: 'column_set',
       flex_mode: 'none',
@@ -465,7 +456,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
           weight: 1,
           vertical_align: 'top',
           elements: [
-            { tag: 'div', text: { tag: 'lark_md', content: `${statusParts.join(' ')}\n${progressBar} **${percent}%**` } },
+            { tag: 'div', text: { tag: 'lark_md', content: `进度：${counts.completed}/${nodes.length} **${percent}%**` } },
           ],
         },
       ],
@@ -495,7 +486,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
         columns: [
           { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**项目**' } }] },
           { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**阶段**' } }] },
-          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**状态 / 进度**' } }] },
+          { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**进度**' } }] },
         ],
       },
       // 项目行
