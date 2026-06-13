@@ -366,4 +366,55 @@ function buildGroupWeeklyCard(project, nodes, recentNodes) {
   }
 }
 
-module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildAdminWeeklyCard, buildGroupWeeklyCard }
+function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
+  const now = new Date()
+  const weekStr = `${now.getMonth() + 1}月${now.getDate()}日`
+
+  const projectElements = myProjects.map(p => {
+    const nodes = projectNodeMap[p.record_id] || []
+    const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
+    nodes.forEach(n => { counts[getNodeStatus(n)]++ })
+    const total = nodes.length || 1
+    const percent = Math.round((counts.completed / total) * 100)
+
+    const current = nodes.find(n => n.fields?.status === 'in_progress')
+    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+
+    const statusEmoji = p.fields?.status === '异常' ? '🔴' : p.fields?.status === '项目完成' ? '🟢' : '🔵'
+    const statusParts = []
+    if (counts.completed > 0) statusParts.push(`✅${counts.completed}`)
+    if (counts.in_progress > 0) statusParts.push(`🔄${counts.in_progress}`)
+    if (counts.pending > 0) statusParts.push(`⏳${counts.pending}`)
+    if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
+    if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
+
+    return [
+      { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**（${p.fields?.no}）` } },
+      { tag: 'div', text: { tag: 'lark_md', content: `　　${currentLabel} | ${statusParts.join(' ')} | **${percent}%**` } },
+    ]
+  }).flat()
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `${ownerName} 的项目周报 · ${weekStr}` },
+      template: 'wathet',
+    },
+    elements: [
+      {
+        tag: 'div',
+        fields: [
+          { is_short: true, text: { tag: 'lark_md', content: `**📊 负责项目**\n${myProjects.length} 个` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**📅 周报周期**\n本周` } },
+        ],
+      },
+      { tag: 'hr' },
+      ...(myProjects.length > 0
+        ? projectElements
+        : [{ tag: 'div', text: { tag: 'lark_md', content: '暂无负责的项目。' } }]
+      ),
+    ],
+  }
+}
+
+module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildAdminWeeklyCard, buildGroupWeeklyCard, buildMyWeeklyCard }

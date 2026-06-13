@@ -1,7 +1,7 @@
 const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
 const { getGroupBinding, bindGroup, unbindGroup, isProjectOwner } = require('./group')
-const { generateGroupWeeklyReport, generateAdminWeeklyReport } = require('./weekly')
+const { generateGroupWeeklyReport, generateAdminWeeklyReport, generateMyWeeklyReport } = require('./weekly')
 const { listRecords } = require('../feishu/bitable')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
@@ -110,6 +110,11 @@ async function handleMessage(event) {
     if (chatId) {
       const card = await generateGroupWeeklyReport(chatId)
       return card ? { card } : { text: '未绑定项目，无法生成周报' }
+    }
+    // 私聊：生成当前用户负责的项目周报
+    if (senderName) {
+      const card = await generateMyWeeklyReport(senderName)
+      return card ? { card } : { text: '你没有负责的项目' }
     }
     return { text: '请在群聊中使用周报功能，或使用"管理周报"查看全局周报' }
   }

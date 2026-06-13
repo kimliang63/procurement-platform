@@ -2,7 +2,7 @@ const { callTool, STAGE_MAP } = require('../mcp')
 const { getGroupBinding } = require('./group')
 const client = require('../feishu/client')
 const { listRecords } = require('../feishu/bitable')
-const { buildAdminWeeklyCard, buildGroupWeeklyCard } = require('./cards')
+const { buildAdminWeeklyCard, buildGroupWeeklyCard, buildMyWeeklyCard } = require('./cards')
 
 function getWeekRange() {
   const now = new Date()
@@ -41,6 +41,37 @@ async function generateAdminWeeklyReport() {
   })
 
   return buildAdminWeeklyCard(activeProjects, projectNodeMap, projects.length)
+}
+
+async function generateMyWeeklyReport(ownerName) {
+  const projects = await callTool('list_projects')
+  const { weekStart, weekEnd } = getWeekRange()
+
+  // 筛选当前用户负责的项目
+  const myProjects = projects.filter(p => p.fields?.owner === ownerName)
+  if (myProjects.length === 0) return null
+
+  // 筛选本周有变动的项目
+  const activeProjects = myProjects.filter(p => {
+    const f = p.fields || {}
+    return inWeekRange(f.plan_start, weekStart, weekEnd)
+      || inWeekRange(f.plan_end, weekStart, weekEnd)
+      || f.status === '进行中'
+  })
+
+  // 如果本周没有变动，也返回全部项目（让用户看到整体情况）
+  const projectsToShow = activeProjects.length > 0 ? activeProjects : myProjects
+
+  // 批量拉取所有 nodes
+  const allNodes = await listRecords('nodes')
+  const projectNodeMap = {}
+  projectsToShow.forEach(p => { projectNodeMap[p.record_id] = [] })
+  allNodes.forEach(n => {
+    const pid = n.fields?.project_id
+    if (projectNodeMap[pid]) projectNodeMap[pid].push(n)
+  })
+
+  return buildMyWeeklyCard(projectsToShow, projectNodeMap, ownerName)
 }
 
 async function generateGroupWeeklyReport(chatId) {
@@ -114,4 +145,4 @@ async function sendWeeklyReports() {
   return results
 }
 
-module.exports = { generateAdminWeeklyReport, generateGroupWeeklyReport, sendWeeklyReports }
+module.exports = { generateAdminWeeklyReport, generateGroupWeeklyReport, generateMyWeeklyReport, sendWeeklyReports }

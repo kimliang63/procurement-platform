@@ -45,6 +45,7 @@ jest.mock('../llm', () => ({
 jest.mock('../weekly', () => ({
   generateAdminWeeklyReport: jest.fn().mockResolvedValue({ header: { title: { content: '管理周报' } }, elements: [] }),
   generateGroupWeeklyReport: jest.fn().mockResolvedValue({ header: { title: { content: '项目周报' } }, elements: [] }),
+  generateMyWeeklyReport: jest.fn().mockResolvedValue({ header: { title: { content: '我的周报' } }, elements: [] }),
 }))
 
 jest.mock('../../feishu/bitable', () => ({
@@ -316,9 +317,9 @@ describe('E2E 5. 周报', () => {
     expect(r.card).toBeDefined()
   })
 
-  test('私聊发周报 → 提示去群聊', async () => {
+  test('私聊发周报 → 生成个人周报', async () => {
     const r = await handleMessage({ message: { content: JSON.stringify({ text: '周报' }), chat_type: 'p2p' }, sender: { sender_id: { open_id: 'ou_user1' } } })
-    expect(r.text).toContain('请在群聊中使用')
+    expect(r.card).toBeDefined()
   })
 })
 
