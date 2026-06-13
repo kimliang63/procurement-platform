@@ -206,17 +206,46 @@ function buildIssueAlertCard(project, issue) {
   }
 }
 
+// 节点状态判断：completed / in_progress / overdue / blocked / pending
+function getNodeStatus(node) {
+  const f = node.fields || {}
+  if (f.actual_date) return 'completed'
+  if (f.status === 'blocked') return 'blocked'
+  if (f.plan_end && new Date() > new Date(f.plan_end)) return 'overdue'
+  if (f.status === 'in_progress') return 'in_progress'
+  return 'pending'
+}
+
+const STATUS_ICON = { completed: '✅', in_progress: '🔄', overdue: '⚠️', blocked: '🔴', pending: '⏳' }
+const STATUS_LABEL = { completed: '已完成', in_progress: '进行中', overdue: '已逾期', blocked: '异常', pending: '待开始' }
+
 function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日周报`
 
-  const projectLines = activeProjects.map(p => {
+  const projectElements = activeProjects.map(p => {
     const nodes = projectNodeMap[p.record_id] || []
-    const completed = nodes.filter(n => n.fields?.actual_date).length
+    const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
+    nodes.forEach(n => { counts[getNodeStatus(n)]++ })
+    const total = nodes.length || 1
+    const percent = Math.round((counts.completed / total) * 100)
+
     const current = nodes.find(n => n.fields?.status === 'in_progress')
     const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
-    return `**${p.fields?.name}**（${p.fields?.no}）\n状态：${p.fields?.status} | 阶段：${currentLabel} | 进度：${completed}/${nodes.length}`
-  })
+
+    const statusEmoji = p.fields?.status === '异常' ? '🔴' : p.fields?.status === '项目完成' ? '🟢' : '🔵'
+    const statusParts = []
+    if (counts.completed > 0) statusParts.push(`✅${counts.completed}`)
+    if (counts.in_progress > 0) statusParts.push(`🔄${counts.in_progress}`)
+    if (counts.pending > 0) statusParts.push(`⏳${counts.pending}`)
+    if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
+    if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
+
+    return [
+      { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**（${p.fields?.no}）` } },
+      { tag: 'div', text: { tag: 'lark_md', content: `　　${currentLabel} | ${statusParts.join(' ')} | **${percent}%**` } },
+    ]
+  }).flat()
 
   return {
     config: { wide_screen_mode: true },
@@ -228,13 +257,13 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
       {
         tag: 'div',
         fields: [
-          { is_short: true, text: { tag: 'lark_md', content: `**本周活跃项目**\n${activeProjects.length} 个` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**全部项目**\n${totalProjects} 个` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**📊 本周活跃项目**\n${activeProjects.length} 个` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**📁 全部项目**\n${totalProjects} 个` } },
         ],
       },
       { tag: 'hr' },
       ...(activeProjects.length > 0
-        ? projectLines.map(line => ({ tag: 'div', text: { tag: 'lark_md', content: line } }))
+        ? projectElements
         : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无项目变动。' } }]
       ),
     ],
@@ -242,22 +271,61 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
 }
 
 function buildGroupWeeklyCard(project, nodes, recentNodes) {
-  const completed = nodes.filter(n => n.fields?.actual_date).length
-  const total = nodes.length
-  const current = nodes.find(n => n.fields?.status === 'in_progress')
-  const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日`
 
-  const changeLines = recentNodes.map(n => {
+  // 统计节点状态
+  const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
+  nodes.forEach(n => { counts[getNodeStatus(n)]++ })
+  const total = nodes.length || 1
+  const percent = Math.round((counts.completed / total) * 100)
+
+  // 进度条：用 10 格表示
+  const filledCount = Math.round(percent / 10)
+  const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+
+  const current = nodes.find(n => n.fields?.status === 'in_progress')
+  const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+
+  // 节点详情列表
+  const nodeLines = nodes.map(n => {
     const f = n.fields || {}
     const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
-    const changes = []
-    if (f.actual_date) changes.push(`实际完成 ${f.actual_date}`)
-    if (f.plan_start) changes.push(`计划开始 ${f.plan_start}`)
-    if (f.plan_end) changes.push(`计划结束 ${f.plan_end}`)
-    return `· **${label}**：${changes.join('，') || '—'}`
+    const status = getNodeStatus(n)
+    const icon = STATUS_ICON[status]
+
+    let dateInfo = ''
+    if (status === 'completed') {
+      dateInfo = `${f.actual_date} 完成`
+    } else if (status === 'overdue') {
+      const days = Math.ceil((now - new Date(f.plan_end)) / 86400000)
+      dateInfo = `已逾期 ${days} 天`
+    } else if (status === 'in_progress') {
+      dateInfo = f.plan_end ? `计划 ${f.plan_end}` : '进行中'
+    } else if (status === 'blocked') {
+      dateInfo = f.note || '异常'
+    } else {
+      dateInfo = f.plan_start ? `计划 ${f.plan_start}` : '待开始'
+    }
+
+    return `${icon} **${label}**　${dateInfo}`
   })
+
+  // 本周变化
+  const changeElements = recentNodes.length > 0
+    ? [
+        { tag: 'div', text: { tag: 'lark_md', content: '**📋 本周变化**' } },
+        ...recentNodes.map(n => {
+          const f = n.fields || {}
+          const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
+          const changes = []
+          if (f.actual_date) changes.push(`完成 ${f.actual_date}`)
+          if (f.plan_start) changes.push(`计划开始 ${f.plan_start}`)
+          if (f.plan_end) changes.push(`计划结束 ${f.plan_end}`)
+          return { tag: 'div', text: { tag: 'lark_md', content: `· **${label}**：${changes.join('，') || '—'}` } }
+        }),
+      ]
+    : []
 
   return {
     config: { wide_screen_mode: true },
@@ -266,30 +334,25 @@ function buildGroupWeeklyCard(project, nodes, recentNodes) {
       template: 'green',
     },
     elements: [
+      // 项目基本信息
       {
         tag: 'div',
         fields: [
-          { is_short: true, text: { tag: 'lark_md', content: `**项目编号**\n${project.fields?.no}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**当前阶段**\n${currentLabel}` } },
-          { is_short: true, text: { tag: 'lark_md', content: `**进度**\n${completed}/${total} 节点完成` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**📋 项目编号**\n${project.fields?.no}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**🎯 当前阶段**\n${currentLabel}` } },
         ],
       },
+      // 进度条 + 状态统计
       { tag: 'hr' },
-      ...(recentNodes.length > 0
-        ? [
-            { tag: 'div', text: { tag: 'lark_md', content: '**本周变化：**' } },
-            ...recentNodes.map(n => {
-              const f = n.fields || {}
-              const label = STAGE_MAP[f.stage_key]?.label || f.stage_key
-              const changes = []
-              if (f.actual_date) changes.push(`实际完成 ${f.actual_date}`)
-              if (f.plan_start) changes.push(`计划开始 ${f.plan_start}`)
-              if (f.plan_end) changes.push(`计划结束 ${f.plan_end}`)
-              return { tag: 'div', text: { tag: 'lark_md', content: `· **${label}**：${changes.join('，') || '—'}` } }
-            }),
-          ]
-        : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无节点变动。' } }]
-      ),
+      { tag: 'div', text: { tag: 'lark_md', content: `**进度** ${progressBar} **${percent}%**` } },
+      { tag: 'div', text: { tag: 'lark_md', content: `✅ ${counts.completed}　🔄 ${counts.in_progress}　⏳ ${counts.pending}　⚠️ ${counts.overdue + counts.blocked}` } },
+      // 节点详情
+      { tag: 'hr' },
+      { tag: 'div', text: { tag: 'lark_md', content: '**📌 节点详情**' } },
+      ...nodeLines.map(line => ({ tag: 'div', text: { tag: 'lark_md', content: line } })),
+      // 本周变化
+      ...(changeElements.length > 0 ? [{ tag: 'hr' }, ...changeElements] : []),
+      // 操作按钮
       ...(project?.record_id ? [{
         tag: 'action',
         actions: [{
