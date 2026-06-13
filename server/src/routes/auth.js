@@ -56,6 +56,8 @@ router.get('/feishu/callback', async (req, res) => {
     }
 
     if (existing) {
+      // 保留原有角色，不覆盖
+      userData.role = existing.fields?.role || userData.role
       await updateRecord('users', existing.record_id, userData)
     } else {
       await createRecord('users', userData)
