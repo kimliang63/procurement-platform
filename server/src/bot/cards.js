@@ -223,7 +223,8 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日周报`
 
-  const projectElements = activeProjects.map(p => {
+  // 表格行
+  const rows = activeProjects.map(p => {
     const nodes = projectNodeMap[p.record_id] || []
     const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
     nodes.forEach(n => { counts[getNodeStatus(n)]++ })
@@ -231,7 +232,7 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
     const percent = Math.round((counts.completed / total) * 100)
 
     const current = nodes.find(n => n.fields?.status === 'in_progress')
-    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '—'
 
     const statusEmoji = p.fields?.status === '异常' ? '🔴' : p.fields?.status === '项目完成' ? '🟢' : '🔵'
     const statusParts = []
@@ -241,11 +242,16 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
     if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
     if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
 
-    return [
-      { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**（${p.fields?.no}）` } },
-      { tag: 'div', text: { tag: 'lark_md', content: `　　${currentLabel} | ${statusParts.join(' ')} | **${percent}%**` } },
-    ]
-  }).flat()
+    // 进度条
+    const filledCount = Math.round(percent / 10)
+    const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+
+    return `| ${statusEmoji} ${p.fields?.name} | ${p.fields?.owner || '—'} | ${currentLabel} | ${statusParts.join(' ')} | ${progressBar} ${percent}% |`
+  })
+
+  const tableMarkdown = activeProjects.length > 0
+    ? `| 项目 | 负责人 | 阶段 | 节点状态 | 进度 |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}`
+    : '本周无项目变动。'
 
   return {
     config: { wide_screen_mode: true },
@@ -262,10 +268,7 @@ function buildAdminWeeklyCard(activeProjects, projectNodeMap, totalProjects) {
         ],
       },
       { tag: 'hr' },
-      ...(activeProjects.length > 0
-        ? projectElements
-        : [{ tag: 'div', text: { tag: 'lark_md', content: '本周无项目变动。' } }]
-      ),
+      { tag: 'div', text: { tag: 'lark_md', content: tableMarkdown } },
     ],
   }
 }
@@ -370,7 +373,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
   const now = new Date()
   const weekStr = `${now.getMonth() + 1}月${now.getDate()}日`
 
-  const projectElements = myProjects.map(p => {
+  const rows = myProjects.map(p => {
     const nodes = projectNodeMap[p.record_id] || []
     const counts = { completed: 0, in_progress: 0, overdue: 0, blocked: 0, pending: 0 }
     nodes.forEach(n => { counts[getNodeStatus(n)]++ })
@@ -378,7 +381,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
     const percent = Math.round((counts.completed / total) * 100)
 
     const current = nodes.find(n => n.fields?.status === 'in_progress')
-    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '已完成'
+    const currentLabel = current ? (STAGE_MAP[current.fields?.stage_key]?.label || current.fields?.stage_key) : '—'
 
     const statusEmoji = p.fields?.status === '异常' ? '🔴' : p.fields?.status === '项目完成' ? '🟢' : '🔵'
     const statusParts = []
@@ -388,11 +391,15 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
     if (counts.overdue > 0) statusParts.push(`⚠️${counts.overdue}`)
     if (counts.blocked > 0) statusParts.push(`🔴${counts.blocked}`)
 
-    return [
-      { tag: 'div', text: { tag: 'lark_md', content: `${statusEmoji} **${p.fields?.name}**（${p.fields?.no}）` } },
-      { tag: 'div', text: { tag: 'lark_md', content: `　　${currentLabel} | ${statusParts.join(' ')} | **${percent}%**` } },
-    ]
-  }).flat()
+    const filledCount = Math.round(percent / 10)
+    const progressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+
+    return `| ${statusEmoji} ${p.fields?.name} | ${currentLabel} | ${statusParts.join(' ')} | ${progressBar} ${percent}% |`
+  })
+
+  const tableMarkdown = myProjects.length > 0
+    ? `| 项目 | 阶段 | 节点状态 | 进度 |\n| --- | --- | --- | --- |\n${rows.join('\n')}`
+    : '暂无负责的项目。'
 
   return {
     config: { wide_screen_mode: true },
@@ -409,10 +416,7 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
         ],
       },
       { tag: 'hr' },
-      ...(myProjects.length > 0
-        ? projectElements
-        : [{ tag: 'div', text: { tag: 'lark_md', content: '暂无负责的项目。' } }]
-      ),
+      { tag: 'div', text: { tag: 'lark_md', content: tableMarkdown } },
     ],
   }
 }
