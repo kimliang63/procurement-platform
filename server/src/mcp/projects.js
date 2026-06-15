@@ -2,6 +2,14 @@ const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = req
 const { sanitizeFilterValue } = require('../utils/sanitize')
 
 async function createProject(params) {
+  // 校验负责人必须是已注册用户
+  if (params.owner) {
+    const users = await listRecords('users') || []
+    if (!users.some(u => u.fields?.name === params.owner)) {
+      throw new Error(`负责人"${params.owner}"不在用户列表中，请先在用户管理中添加`)
+    }
+  }
+
   const existing = await listRecords('projects') || []
   if (existing.some(p => p.fields?.name === params.name)) {
     throw new Error('项目名称已存在')
