@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, Table, Select, message } from 'antd'
+import { Card, Table, Select, Tag, message } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 import { getUsers, updateUserRole } from '../api'
 
-const roleLabels = {
-  admin: '管理员',
-  pm: '项目经理',
-  member: '成员',
-}
+const ROLE_OPTIONS = [
+  { value: 'admin', label: '管理员' },
+  { value: 'pm', label: '项目负责人' },
+]
+
+const ROLE_COLORS = { admin: 'red', pm: 'blue' }
+const ROLE_LABELS = { admin: '管理员', pm: '项目负责人' }
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -48,23 +50,24 @@ export default function AdminUsers() {
       key: 'name',
     },
     {
-      title: '飞书 ID',
-      dataIndex: ['fields', 'feishu_open_id'],
-      key: 'feishu_open_id',
-      ellipsis: true,
-    },
-    {
       title: '角色',
       dataIndex: ['fields', 'role'],
       key: 'role',
       render: (role, record) => (
         <Select
-          value={role || 'member'}
+          value={role || 'pm'}
           onChange={(val) => handleRoleChange(record, val)}
-          style={{ width: 120 }}
-          options={Object.entries(roleLabels).map(([value, label]) => ({ value, label }))}
+          style={{ width: 140 }}
+          options={ROLE_OPTIONS}
         />
       ),
+    },
+    {
+      title: '飞书 ID',
+      dataIndex: ['fields', 'feishu_open_id'],
+      key: 'feishu_open_id',
+      ellipsis: true,
+      render: v => <span style={{ color: '#999', fontSize: 12 }}>{v}</span>,
     },
   ]
 

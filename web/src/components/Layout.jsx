@@ -7,14 +7,12 @@ const { Sider, Content, Header } = AntLayout
 
 const roleLabels = {
   admin: '管理员',
-  pm: '项目经理',
-  member: '成员',
+  pm: '项目负责人',
 }
 
 const roleColors = {
   admin: 'red',
   pm: 'blue',
-  member: 'green',
 }
 
 export default function Layout() {
@@ -65,7 +63,7 @@ export default function Layout() {
         />
       </Sider>
       <AntLayout>
-        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
+        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #f0f0f0', position: 'sticky', top: 0, zIndex: 10 }}>
           <Dropdown menu={userMenu}>
             <Space style={{ cursor: 'pointer' }}>
               <Avatar icon={<UserOutlined />} src={user?.avatar} />

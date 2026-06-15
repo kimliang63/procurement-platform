@@ -190,9 +190,9 @@ export default function ProjectDetail() {
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       }
     },
-    { title: '计划开始', dataIndex: ['fields', 'plan_start'], render: v => v || '-' },
-    { title: '计划结束', dataIndex: ['fields', 'plan_end'], render: v => v || '-' },
-    { title: '实际完成', dataIndex: ['fields', 'actual_date'], render: v => v || '-' },
+    { title: '计划开始', dataIndex: ['fields', 'plan_start'], render: v => v || <span style={{ color: '#ccc' }}>未填写</span> },
+    { title: '计划结束', dataIndex: ['fields', 'plan_end'], render: v => v || <span style={{ color: '#ccc' }}>未填写</span> },
+    { title: '实际完成', dataIndex: ['fields', 'actual_date'], render: v => v || <span style={{ color: '#ccc' }}>未填写</span> },
     {
       title: '问题数', key: 'issues',
       render: (_, record) => {

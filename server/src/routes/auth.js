@@ -52,7 +52,7 @@ router.get('/feishu/callback', async (req, res) => {
       feishu_user_id: tokenData.user_id || tokenData.user?.user_id || '',
       name: employeeName,
       avatar: avatarUrl,
-      role: isFirstUser ? 'admin' : 'member',
+      role: isFirstUser ? 'admin' : 'pm',
     }
 
     if (existing) {
@@ -98,7 +98,7 @@ router.get('/me', async (req, res) => {
         open_id: user.fields.feishu_open_id,
         name: user.fields.name,
         avatar: user.fields.avatar,
-        role: user.fields.role || 'member',
+        role: user.fields.role || 'pm',
         record_id: user.record_id,
       }
     })
@@ -125,7 +125,7 @@ router.put('/role', async (req, res) => {
     }
 
     const { record_id, role } = req.body
-    if (!record_id || !['admin', 'pm', 'member'].includes(role)) {
+    if (!record_id || !['admin', 'pm'].includes(role)) {
       return res.status(400).json({ error: '参数错误' })
     }
 
