@@ -25,6 +25,23 @@ export default function Layout() {
     if (saved) {
       try { setUser(JSON.parse(saved)) } catch {}
     }
+    // 从后端拉最新角色
+    const token = localStorage.getItem('feishu_token')
+    if (token) {
+      const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+      fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.data) {
+            setUser(prev => {
+              const updated = { ...prev, role: data.data.role, name: data.data.name || prev?.name }
+              localStorage.setItem('feishu_user', JSON.stringify(updated))
+              return updated
+            })
+          }
+        })
+        .catch(() => {})
+    }
   }, [])
 
   const handleLogout = () => {
