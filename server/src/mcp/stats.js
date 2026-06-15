@@ -73,11 +73,32 @@ async function getDashboardStats() {
     taskTypeStats[tt]++
   })
 
+  // Procurement method stats
+  const procurementStats = {}
+  projects.forEach(p => {
+    const method = p.fields?.procurement_method || '未分类'
+    if (!procurementStats[method]) procurementStats[method] = { count: 0, totalBudget: 0 }
+    procurementStats[method].count++
+    procurementStats[method].totalBudget += Number(p.fields?.budget) || 0
+  })
+
+  // Budget range distribution (budget unit: 万)
+  const budgetRanges = { '10万以下': 0, '10-50万': 0, '50-100万': 0, '100万以上': 0 }
+  projects.forEach(p => {
+    const b = Number(p.fields?.budget) || 0
+    if (b < 10) budgetRanges['10万以下']++
+    else if (b < 50) budgetRanges['10-50万']++
+    else if (b < 100) budgetRanges['50-100万']++
+    else budgetRanges['100万以上']++
+  })
+
   return {
     basic: { doing, completed, total, yearTotal, bidDetermined, over100w },
     buStats,
     ownerStats,
     taskTypeStats,
+    procurementStats,
+    budgetRanges,
   }
 }
 
