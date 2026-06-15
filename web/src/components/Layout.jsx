@@ -67,7 +67,7 @@ export default function Layout() {
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" width={220}>
+      <Sider theme="dark" width={220} style={{ position: 'fixed', height: '100vh', left: 0, top: 0, bottom: 0, zIndex: 20 }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>采购协同平台</div>
         </div>
@@ -79,7 +79,7 @@ export default function Layout() {
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
-      <AntLayout>
+      <AntLayout style={{ marginLeft: 220 }}>
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #f0f0f0', position: 'sticky', top: 0, zIndex: 10 }}>
           <Dropdown menu={userMenu}>
             <Space style={{ cursor: 'pointer' }}>
