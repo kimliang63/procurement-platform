@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Button, Card, Result } from 'antd'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
@@ -97,6 +97,16 @@ function PrivateRoute({ children }) {
   return children
 }
 
+function AdminRoute({ children }) {
+  try {
+    const user = JSON.parse(localStorage.getItem('feishu_user') || '{}')
+    if (user.role !== 'admin') return <Navigate to="/" replace />
+  } catch {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
 export default function App() {
   return (
     <BrowserRouter basename="/">
@@ -109,7 +119,7 @@ export default function App() {
             <Route path="projects" element={<ProjectTimeline />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="issues" element={<IssueTracker />} />
-            <Route path="admin" element={<AdminUsers />} />
+            <Route path="admin" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           </Route>
         </Routes>
       </ErrorBoundary>

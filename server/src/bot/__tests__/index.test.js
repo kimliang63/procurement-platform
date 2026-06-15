@@ -19,8 +19,9 @@ describe('normalizeBudget', () => {
     expect(normalizeBudget(100)).toBe(100)
   })
 
-  test('divides large numbers by 10000 (assuming 元)', () => {
-    expect(normalizeBudget(800000)).toBe(80)
+  test('passes through raw numbers as-is (assumed 万)', () => {
+    expect(normalizeBudget(800000)).toBe(800000)
+    expect(normalizeBudget(5000)).toBe(5000)
   })
 
   test('handles decimal values', () => {

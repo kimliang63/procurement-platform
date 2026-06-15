@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Row, Col, Card, Spin } from 'antd'
+import { Row, Col, Card, Spin, Result, Button } from 'antd'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { getStats } from '../api'
 
@@ -25,18 +25,29 @@ const CustomBarLabel = ({ x, y, width, value }) => {
 export default function DashboardV2() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
+  const fetchData = () => {
     setLoading(true)
+    setError(false)
     getStats()
       .then(res => setStats(res.data?.data))
       .catch((e) => {
         console.error('Failed to load stats:', e)
+        setError(true)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   if (loading && !stats) return <div style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>
+  if (error && !stats) return (
+    <div style={{ textAlign: 'center', paddingTop: 100 }}>
+      <Result status="error" title="加载数据失败" subTitle="请检查网络连接后重试"
+        extra={<Button type="primary" onClick={fetchData}>重试</Button>} />
+    </div>
+  )
   if (!stats) return null
 
   const { basic = {}, buStats = {}, ownerStats = {}, taskTypeStats = {} } = stats || {}

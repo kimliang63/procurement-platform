@@ -171,9 +171,13 @@ export default function ProjectTimeline() {
   }
 
   const handleDelete = async (id) => {
-    await deleteProject(id)
-    message.success('项目已删除')
-    fetchAll()
+    try {
+      await deleteProject(id)
+      message.success('项目已删除')
+      fetchAll()
+    } catch (e) {
+      message.error(e?.response?.data?.error || '删除失败')
+    }
   }
 
   const userOptions = users.map(u => ({

@@ -44,6 +44,13 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    // 非管理员只能编辑自己负责的项目
+    if (req.user.role !== 'admin') {
+      const existing = await callTool('get_project', { projectId: req.params.id })
+      if (existing?.fields?.owner !== req.user.name) {
+        return res.status(403).json({ error: '无权编辑此项目' })
+      }
+    }
     const project = await callTool('update_project', { projectId: req.params.id, ...req.body })
     res.json({ data: project })
   } catch (e) {

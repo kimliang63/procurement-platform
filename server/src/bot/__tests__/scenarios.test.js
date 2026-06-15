@@ -269,6 +269,63 @@ describe('更新节点时间', () => {
     const result = await handleMessage(makeEvent('不存在的项目需求确认日期改了'))
     expect(result.text).toContain('未找到项目')
   })
+
+  test('批量更新：一条消息更新多个节点 → 返回确认卡片', async () => {
+    understandIntent.mockResolvedValue({
+      intent: 'update_node',
+      params: {
+        projectId: 'rec_proj',
+        name: '测试项目',
+        updates: [
+          { stageKey: 'requirement', plan_start: '2026-03-01' },
+          { stageKey: 'tech_exchange', plan_end: '2026-06-30' },
+        ],
+      },
+      message: '请确认',
+    })
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_project_nodes') return Promise.resolve([
+        { fields: { stage_key: 'requirement', plan_start: '', plan_end: '' } },
+        { fields: { stage_key: 'tech_exchange', plan_start: '', plan_end: '' } },
+      ])
+      return Promise.resolve({})
+    })
+
+    const result = await handleMessage(makeEvent('需求确认开始3月1号，技术交流结束6月30号'))
+    expect(result.card).toBeDefined()
+    expect(result.card.header.title.content).toContain('确认节点更新')
+    const confirmBtn = result.card.elements.find(e => e.tag === 'action')?.actions?.[0]
+    expect(confirmBtn.value.action).toBe('confirm_node_update')
+    expect(confirmBtn.value.updates).toHaveLength(2)
+  })
+
+  test('批量更新：单节点格式仍走直接更新（无卡片）', async () => {
+    understandIntent.mockResolvedValue({
+      intent: 'update_node',
+      params: { projectId: 'rec_proj', stageKey: 'requirement', plan_end: '2026-07-01' },
+      message: '已更新',
+    })
+    callTool.mockResolvedValue({})
+
+    const result = await handleMessage(makeEvent('需求确认截止日期改为7月1号'))
+    expect(result.card).toBeUndefined()
+    expect(result.text).toContain('已更新')
+  })
+
+  test('批量更新：超过10个节点 → 提示', async () => {
+    const updates = Array.from({ length: 11 }, (_, i) => ({
+      stageKey: ['requirement', 'supplier_dev', 'tech_exchange', 'sampling', 'bid_approval', 'bid_issue', 'bid_qa', 'bid_return', 'bid_open', 'bid_determine', 'bid_notify'][i],
+      plan_start: '2026-03-01',
+    }))
+    understandIntent.mockResolvedValue({
+      intent: 'update_node',
+      params: { projectId: 'rec_proj', updates },
+      message: '批量更新',
+    })
+
+    const result = await handleMessage(makeEvent('11个节点都改成3月1号'))
+    expect(result.text).toContain('单次最多更新10个节点')
+  })
 })
 
 // ============================================================
@@ -544,6 +601,90 @@ describe('卡片操作 — confirm_project 节点初始化', () => {
       budget: 50,
       procurementMethod: '项目类',
     }))
+  })
+})
+
+// ============================================================
+// 10b. 卡片操作 — 批量节点更新
+// ============================================================
+describe('卡片操作 — 批量节点更新', () => {
+  test('确认批量更新 → 循环调用 update_node', async () => {
+    callTool.mockResolvedValue({})
+    const action = {
+      action: 'confirm_node_update',
+      project_id: 'rec_proj',
+      updates: [
+        { stageKey: 'requirement', plan_start: '2026-03-01' },
+        { stageKey: 'tech_exchange', plan_end: '2026-06-30' },
+      ],
+    }
+    const result = await handleCardAction(action, 'oc_test_chat', 'ou_test_user')
+    expect(result.success).toBe(true)
+    await new Promise(r => setTimeout(r, 150))
+
+    expect(callTool).toHaveBeenCalledWith('update_node', expect.objectContaining({
+      projectId: 'rec_proj',
+      stageKey: 'requirement',
+      plan_start: '2026-03-01',
+    }))
+    expect(callTool).toHaveBeenCalledWith('update_node', expect.objectContaining({
+      projectId: 'rec_proj',
+      stageKey: 'tech_exchange',
+      plan_end: '2026-06-30',
+    }))
+    expect(client.im.message.create).toHaveBeenCalled()
+  })
+
+  test('确认批量更新 — 部分失败 → 报告成功和失败', async () => {
+    callTool.mockImplementation((tool, params) => {
+      if (tool === 'update_node' && params.stageKey === 'requirement') return Promise.resolve({})
+      if (tool === 'update_node' && params.stageKey === 'tech_exchange') return Promise.reject(new Error('节点不存在'))
+      return Promise.resolve({})
+    })
+    const action = {
+      action: 'confirm_node_update',
+      project_id: 'rec_proj',
+      updates: [
+        { stageKey: 'requirement', plan_start: '2026-03-01' },
+        { stageKey: 'tech_exchange', plan_end: '2026-06-30' },
+      ],
+    }
+    await handleCardAction(action, 'oc_test_chat', 'ou_test_user')
+    await new Promise(r => setTimeout(r, 150))
+
+    const lastCall = client.im.message.create.mock.calls[client.im.message.create.mock.calls.length - 1]
+    const content = JSON.parse(lastCall[0].data.content)
+    expect(content.text).toContain('已更新 1 个节点')
+    expect(content.text).toContain('失败 1 个')
+  })
+
+  test('取消批量更新 → 不调用 update_node', async () => {
+    callTool.mockResolvedValue({})
+    const action = { action: 'cancel_node_update', project_id: 'rec_proj' }
+    const result = await handleCardAction(action, 'oc_test_chat', 'ou_test_user')
+    expect(result.success).toBe(true)
+    expect(callTool).not.toHaveBeenCalledWith('update_node', expect.any(Object))
+    expect(client.im.message.create).toHaveBeenCalled()
+  })
+
+  test('批量更新 — 无效参数 → 返回错误', async () => {
+    const action = { action: 'confirm_node_update', project_id: 'rec_proj' }
+    const result = await handleCardAction(action, 'oc_test_chat', 'ou_test_user')
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('invalid_params')
+  })
+
+  test('批量更新 — 非负责人 → 拒绝', async () => {
+    const { isProjectOwner } = require('../group')
+    isProjectOwner.mockResolvedValueOnce(false)
+    const action = {
+      action: 'confirm_node_update',
+      project_id: 'rec_proj',
+      updates: [{ stageKey: 'requirement', plan_start: '2026-03-01' }],
+    }
+    const result = await handleCardAction(action, 'oc_test_chat', 'ou_other_user')
+    expect(result.toast).toBeDefined()
+    expect(result.toast.content).toContain('仅负责人可操作')
   })
 })
 

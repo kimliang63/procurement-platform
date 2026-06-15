@@ -162,8 +162,9 @@ app.post('/webhook/bot', async (req, res) => {
         .catch(e => console.error('Reaction failed:', e.response?.data?.msg || e.message))
     }
 
-    // fire-and-forget: 不阻塞 webhook 响应
-    handleMessage(event).then(reply => {
+    // fire-and-forget: 不阻塞 webhook 响应，8秒超时兜底
+    const msgTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    Promise.race([handleMessage(event), msgTimeout]).then(reply => {
       if (reply && chatId) {
         const msgType = reply.card ? 'interactive' : 'text'
         const content = reply.card ? JSON.stringify(reply.card) : JSON.stringify({ text: reply.text })
@@ -172,7 +173,15 @@ app.post('/webhook/bot', async (req, res) => {
           data: { receive_id: chatId, msg_type: msgType, content },
         }).catch(e => console.error('Failed to send reply:', e.message))
       }
-    }).catch(e => console.error('Message handling error:', e.message))
+    }).catch(e => {
+      console.error('Message handling error:', e.message)
+      if (chatId && e.message === 'timeout') {
+        client.im.message.create({
+          params: { receive_id_type: 'chat_id' },
+          data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: '处理超时，请稍后重试' }) },
+        }).catch(() => {})
+      }
+    })
   }
 
   res.json({ success: true })

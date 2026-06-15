@@ -5,7 +5,7 @@ const { generateGroupWeeklyReport, generateAdminWeeklyReport, generateMyWeeklyRe
 const { listRecords } = require('../feishu/bitable')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
-const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed } = require('./cards')
+const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildNodeUpdateConfirmCard } = require('./cards')
 const client = require('../feishu/client')
 
 // 根据 open_id 从 users 表查找用户姓名
@@ -31,14 +31,13 @@ const INTENT_MAP = {
   deleteIssue: 'delete_issue', listIssues: 'list_issues',
 }
 
-// 预算单位归一化：800000 → 80，"80万" → 80
+// 预算单位归一化："80万" → 80，raw number 假设已是万元单位
 function normalizeBudget(val) {
   if (!val) return val
   if (typeof val === 'string') {
     const num = parseFloat(val.replace(/万/g, ''))
     if (!isNaN(num)) return num
   }
-  if (typeof val === 'number' && val > 1000) return val / 10000
   return val
 }
 
@@ -76,24 +75,22 @@ async function handleMessage(event) {
   // 解析发送者真实姓名
   const senderName = await resolveUserName(senderId)
 
-  // Check for group binding command — 支持多种写法
-  if (text.includes('绑定')) {
+  // Check for group binding command — 必须以"绑定"开头，避免"之前绑定的项目"等误触发
+  if (/^绑定/.test(text)) {
     if (!chatId) {
       return { text: '绑定功能仅支持群聊使用' }
     }
-    // 提取项目名称：支持 "绑定 XX项目" / "绑定XX" / "绑定 项目名称"
     const match = text.match(/绑定[项目]*\s*(.+)/)
     const projectName = match?.[1]?.trim()
     if (projectName) {
       const result = await bindGroup(chatId, projectName, senderId)
       return { text: result.message || `已绑定项目：${result.project.fields?.name}` }
     }
-    // 没有项目名 → 追问
     return { text: '请告诉我要绑定的项目名称，例如：绑定 XX设备采购项目' }
   }
 
-  // 解绑群聊
-  if (text.includes('解绑')) {
+  // 解绑群聊 — 仅精确匹配"解绑"
+  if (/^解绑$/.test(text.trim())) {
     if (!chatId) {
       return { text: '解绑功能仅支持群聊使用' }
     }
@@ -101,8 +98,8 @@ async function handleMessage(event) {
     return { text: result.message || `已解绑项目：${result.projectName}` }
   }
 
-  // Weekly report command
-  if (text.includes('周报') || text.includes('weekly')) {
+  // Weekly report command — 以"周报"开头、"管理周报"、"admin周报"或精确匹配
+  if (/^周报$|^周报\s|^管理周报$|^admin周报$|^weekly$/i.test(text.trim())) {
     if (text.includes('管理') || text.includes('admin')) {
       const card = await generateAdminWeeklyReport()
       return { card }
@@ -111,7 +108,6 @@ async function handleMessage(event) {
       const card = await generateGroupWeeklyReport(chatId)
       return card ? { card } : { text: '未绑定项目，无法生成周报' }
     }
-    // 私聊：生成当前用户负责的项目周报
     if (senderName) {
       const card = await generateMyWeeklyReport(senderName)
       return card ? { card } : { text: '你没有负责的项目' }
@@ -174,7 +170,7 @@ async function handleMessage(event) {
       return { text: dateError }
     }
 
-    // 信息完整 → 先检查重名，再弹确认卡片
+    // 信息完整 → 先检查重名，再校验负责人，再弹确认卡片
     if (params.name) {
       try {
         const projects = await callTool('list_projects')
@@ -183,6 +179,16 @@ async function handleMessage(event) {
           return { text: `项目名称"${params.name}"已存在（编号：${duplicate.fields?.no}），请换个名称` }
         }
       } catch (e) { console.error('Duplicate check error:', e.message) }
+    }
+
+    // 校验负责人是否已注册
+    if (senderName) {
+      try {
+        const users = await listRecords('users') || []
+        if (!users.some(u => u.fields?.name === senderName)) {
+          return { text: `你的账号（${senderName}）未在系统中注册，请先联系管理员添加` }
+        }
+      } catch (e) { console.error('Owner validation error:', e.message) }
     }
 
     // 信息完整 → 始终弹确认卡片，由卡片按钮执行创建
@@ -211,17 +217,105 @@ async function handleMessage(event) {
         // 按名称查找项目
         try {
           const projects = await callTool('list_projects')
-          const match = projects.find(p => p.fields?.name === result.params.name)
-            || projects.find(p => p.fields?.name?.includes(result.params.name))
-          if (match) {
-            result.params = { ...result.params, projectId: match.record_id }
-            if (session) session.currentProjectId = match.record_id
+          const exactMatches = projects.filter(p => p.fields?.name === result.params.name)
+          if (exactMatches.length === 1) {
+            result.params = { ...result.params, projectId: exactMatches[0].record_id }
+            if (session) session.currentProjectId = exactMatches[0].record_id
+          } else if (exactMatches.length === 0) {
+            const partialMatches = projects.filter(p => p.fields?.name?.includes(result.params.name))
+            if (partialMatches.length === 1) {
+              result.params = { ...result.params, projectId: partialMatches[0].record_id }
+              if (session) session.currentProjectId = partialMatches[0].record_id
+            } else if (partialMatches.length > 1) {
+              const list = partialMatches.map((p, i) => `${i + 1}. ${p.fields.name}`).join('\n')
+              return { text: `找到多个匹配项目，请告诉我要操作哪一个：\n${list}` }
+            }
+          } else {
+            const list = exactMatches.map((p, i) => `${i + 1}. ${p.fields.name}`).join('\n')
+            return { text: `找到多个同名项目，请告诉我要操作哪一个：\n${list}` }
           }
         } catch (e) { console.error('Project lookup error:', e.message) }
       }
       // 仍然没有 projectId，提示用户
       if (!result.params?.projectId) {
         return { text: `未找到项目"${result.params?.name || ''}"，请确认项目名称是否正确` }
+      }
+    }
+
+    // 拦截 update_node（在 callTool 之前，统一处理单节点和批量）
+    if (result.intent === 'update_node') {
+      console.log('[update_node] params:', JSON.stringify(result.params))
+
+      // Normalize: 单节点格式 → 批量格式
+      let updates = result.params.updates
+      if (!updates && result.params.stageKey) {
+        const { stageKey, plan_start, plan_end, actual_date, note } = result.params
+        updates = [{ stageKey, plan_start, plan_end, actual_date, note }]
+      }
+
+      if (!updates || updates.length === 0) {
+        if (result.message) return { text: result.message }
+        return { text: '未识别到要更新的节点信息，请重试' }
+      }
+
+      for (const u of updates) {
+        if (!u.stageKey) return { text: '更新信息不完整，缺少阶段标识' }
+      }
+
+      if (updates.length > 10) {
+        return { text: '单次最多更新10个节点，请分批操作' }
+      }
+
+      // 单节点：直接执行
+      if (updates.length === 1) {
+        try {
+          await callTool('update_node', {
+            projectId: result.params.projectId,
+            stageKey: updates[0].stageKey,
+            ...(updates[0].plan_start !== undefined && { plan_start: updates[0].plan_start }),
+            ...(updates[0].plan_end !== undefined && { plan_end: updates[0].plan_end }),
+            ...(updates[0].actual_date !== undefined && { actual_date: updates[0].actual_date }),
+            ...(updates[0].note !== undefined && { note: updates[0].note }),
+          })
+          const nodeLabel = STAGE_MAP[updates[0].stageKey]?.label || updates[0].stageKey
+          const changes = []
+          if (updates[0].plan_start) changes.push(`计划开始：${updates[0].plan_start}`)
+          if (updates[0].plan_end) changes.push(`计划结束：${updates[0].plan_end}`)
+          if (updates[0].actual_date) changes.push(`实际完成：${updates[0].actual_date}`)
+          if (updates[0].note) changes.push(`备注：${updates[0].note}`)
+          const detail = changes.length > 0 ? '\n' + changes.join('\n') : ''
+          return { text: `✅ ${nodeLabel} 已更新${detail}` }
+        } catch (e) {
+          return { text: `操作失败：${e.message}` }
+        }
+      }
+
+      // 多节点批量：弹确认卡片
+      let currentNodes = []
+      try {
+        currentNodes = await callTool('list_project_nodes', { projectId: result.params.projectId })
+      } catch (e) {
+        console.error('Failed to fetch current nodes:', e.message)
+      }
+
+      const currentMap = {}
+      for (const node of currentNodes) {
+        const f = node.fields || {}
+        currentMap[f.stage_key] = {
+          plan_start: f.plan_start || '',
+          plan_end: f.plan_end || '',
+          actual_date: f.actual_date || '',
+          note: f.note || '',
+        }
+      }
+
+      return {
+        card: buildNodeUpdateConfirmCard({
+          projectId: result.params.projectId,
+          projectName: result.params.name || '',
+          updates,
+          currentMap,
+        })
       }
     }
 
@@ -274,15 +368,25 @@ async function handleMessage(event) {
         return { text: summary }
       }
 
-      if (result.intent === 'update_node') {
-        const nodeLabel = STAGE_MAP[result.params.stageKey]?.label || result.params.stageKey
-        return { text: `已更新 ${nodeLabel} 的信息` }
-      }
-
       if (result.intent === 'mark_node_abnormal') {
         const nodeLabel = STAGE_MAP[result.params.stageKey]?.label || result.params.stageKey
         return { text: `⚠️ ${nodeLabel} 已标记为异常\n原因：${result.params.reason || '未说明'}\n请尽快跟进处理` }
       }
+
+      if (result.intent === 'list_issues') {
+        if (!data || data.length === 0) return { text: '没有找到相关问题。' }
+        const list = data.map(i => {
+          const priority = i.fields?.priority === '高' ? '🔴' : i.fields?.priority === '中' ? '🟡' : '🟢'
+          const stage = STAGE_MAP[i.fields?.stage_key]?.label || i.fields?.stage_key || '—'
+          const status = i.fields?.status === 'closed' ? '已关闭' : i.fields?.status === 'in_progress' ? '处理中' : '待处理'
+          return `${priority} ${i.fields?.description || '无描述'}（${stage} · ${status}）`
+        }).join('\n')
+        return { text: `共 ${data.length} 个问题：\n${list}` }
+      }
+
+      if (result.intent === 'create_issue') return { text: result.message || '问题已创建' }
+      if (result.intent === 'update_issue') return { text: result.message || '问题已更新' }
+      if (result.intent === 'delete_issue') return { text: result.message || '问题已删除' }
 
       return { text: result.message || `操作完成：${result.intent}` }
     } catch (e) {
@@ -310,6 +414,8 @@ function actionKey(action) {
   if (action.action === 'cancel_project') return `cancel:${action.params?.name}`
   if (action.action === 'confirm_node') return `node:${action.project_id}:${action.stage_key}`
   if (action.action === 'mark_abnormal') return `abnormal:${action.project_id}:${action.stage_key}`
+  if (action.action === 'confirm_node_update') return `node_update:${action.project_id}:${Date.now()}`
+  if (action.action === 'cancel_node_update') return `cancel_update:${action.project_id}`
   return `${action.action}:${JSON.stringify(action)}`
 }
 
@@ -414,7 +520,7 @@ async function handleCardAction(action, chatId, senderId) {
 
   try {
     // Permission check for node operations
-    if (action.action === 'confirm_node' || action.action === 'mark_abnormal') {
+    if (action.action === 'confirm_node' || action.action === 'mark_abnormal' || action.action === 'confirm_node_update') {
       if (senderId && action.project_id) {
         const isOwner = await isProjectOwner(action.project_id, senderId)
         if (!isOwner) {
@@ -434,6 +540,67 @@ async function handleCardAction(action, chatId, senderId) {
           console.error('Failed to send cancel message:', e.message)
         }
       }
+      return { success: true }
+    }
+
+    if (action.action === 'cancel_node_update') {
+      if (chatId) {
+        try {
+          await client.im.message.create({
+            params: { receive_id_type: 'chat_id' },
+            data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: '已取消节点更新' }) },
+          })
+        } catch (e) {
+          console.error('Failed to send cancel message:', e.message)
+        }
+      }
+      return { success: true }
+    }
+
+    if (action.action === 'confirm_node_update') {
+      const { project_id, updates } = action
+      if (!project_id || !updates || !Array.isArray(updates)) {
+        return { success: false, error: 'invalid_params' }
+      }
+
+      ;(async () => {
+        const results = []
+        const errors = []
+        for (const update of updates) {
+          try {
+            await callTool('update_node', {
+              projectId: project_id,
+              stageKey: update.stageKey,
+              ...(update.plan_start !== undefined && { plan_start: update.plan_start }),
+              ...(update.plan_end !== undefined && { plan_end: update.plan_end }),
+              ...(update.actual_date !== undefined && { actual_date: update.actual_date }),
+              ...(update.note !== undefined && { note: update.note }),
+            })
+            results.push(update.stageKey)
+          } catch (e) {
+            console.error(`Failed to update node ${update.stageKey}:`, e.message)
+            errors.push({ stageKey: update.stageKey, error: e.message })
+          }
+        }
+
+        if (chatId) {
+          try {
+            const successLabels = results.map(k => STAGE_MAP[k]?.label || k)
+            let msg = `✅ 已更新 ${results.length} 个节点：${successLabels.join('、')}`
+            if (errors.length > 0) {
+              const errLabels = errors.map(e => `${STAGE_MAP[e.stageKey]?.label || e.stageKey}（${e.error}）`)
+              msg += `\n❌ 失败 ${errors.length} 个：${errLabels.join('、')}`
+            }
+            await client.im.message.create({
+              params: { receive_id_type: 'chat_id' },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: msg }) },
+            })
+          } catch (e) {
+            console.error('Failed to send batch update result:', e.message)
+          }
+        }
+      })()
+
       return { success: true }
     }
 
@@ -459,13 +626,14 @@ async function handleCardAction(action, chatId, senderId) {
 
     if (action.action === 'mark_abnormal') {
       try {
-        await callTool('mark_node_abnormal', { projectId: action.project_id, stageKey: action.stage_key, reason: '用户标记异常' })
+        const reason = action.reason || '用户标记异常'
+        await callTool('mark_node_abnormal', { projectId: action.project_id, stageKey: action.stage_key, reason })
         const nodeLabel = STAGE_MAP[action.stage_key]?.label || action.stage_key
         if (chatId) {
           try {
             await client.im.message.create({
               params: { receive_id_type: 'chat_id' },
-              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `⚠️ ${nodeLabel} 已标记为异常` }) },
+              data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text: `⚠️ ${nodeLabel} 已标记为异常\n原因：${reason}` }) },
             })
           } catch (e) {
             console.error('Failed to send abnormal message:', e.message)

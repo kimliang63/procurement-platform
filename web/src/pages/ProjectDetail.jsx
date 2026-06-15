@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip, Spin } from 'antd'
+import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip, Spin, Result } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { getProject, getProjectNodes, updateNode, advanceNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
+import { getProject, getProjectNodes, updateNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
 import PermissionGuard from '../components/PermissionGuard'
 import { STAGE_MAP, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
 
@@ -36,8 +36,11 @@ export default function ProjectDetail() {
   const [issueForm] = Form.useForm()
   const [projectForm] = Form.useForm()
 
+  const [loadError, setLoadError] = useState(false)
+
   const fetchData = async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const [pRes, nRes, iRes, uRes] = await Promise.all([
         getProject(id), getProjectNodes(id), getIssues({ projectId: id }), getUsers()
@@ -49,6 +52,7 @@ export default function ProjectDetail() {
     } catch (e) {
       console.error('Failed to load project:', e)
       message.error('加载项目数据失败')
+      setLoadError(true)
     }
     setLoading(false)
   }
@@ -75,10 +79,6 @@ export default function ProjectDetail() {
         plan_end: values.plan_end || '',
         actual_date: values.actual_date || '',
         note: values.note || '',
-      }
-      // 填了实际日期时自动推进节点
-      if (values.actual_date && editNode.fields?.status !== 'completed') {
-        await advanceNode(id, editNode.fields?.stage_key, values.actual_date)
       }
       await updateNode(id, editNode.fields?.stage_key, updateFields)
       message.success('保存成功')
@@ -175,6 +175,12 @@ export default function ProjectDetail() {
   const getNodeIssues = (stageKey) => issues.filter(i => i.fields?.stage_key === stageKey)
 
   if (loading && !project) return <div style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>
+  if (loadError && !project) return (
+    <div style={{ textAlign: 'center', paddingTop: 100 }}>
+      <Result status="error" title="加载项目失败" subTitle="请检查网络连接后重试"
+        extra={<Button type="primary" onClick={fetchData}>重试</Button>} />
+    </div>
+  )
   if (!project) return null
   const f = project.fields
   const visibleKeys = getVisibleStages(f?.is_single_source, f?.budget, f?.procurement_method)
@@ -201,15 +207,12 @@ export default function ProjectDetail() {
       }
     },
     {
-      title: '操作', render: (_, record) => {
-        const rule = getNodeDisplayRule(f?.is_single_source, f?.budget, f?.procurement_method, record.fields?.stage_key)
-        return (
-          <Space>
-            <Button size="small" icon={<EditOutlined />} disabled={rule !== 'required'} onClick={() => handleEdit(record)}>编辑</Button>
-            <Button size="small" icon={<PlusOutlined />} onClick={() => handleCreateIssue(record)}>创建问题</Button>
-          </Space>
-        )
-      }
+      title: '操作', render: (_, record) => (
+        <Space>
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+          <Button size="small" icon={<PlusOutlined />} onClick={() => handleCreateIssue(record)}>创建问题</Button>
+        </Space>
+      )
     },
   ]
 
@@ -284,10 +287,10 @@ export default function ProjectDetail() {
                               height: 12,
                               borderRadius: 6,
                               background: NODE_STATUS_COLORS[status] || NODE_STATUS_COLORS.pending,
-                              cursor: rule === 'required' ? 'pointer' : 'default',
+                              cursor: 'pointer',
                               opacity: rule === 'visible' ? 0.6 : 1,
                             }}
-                            onClick={() => rule === 'required' && node && handleEdit(node)}
+                            onClick={() => node && handleEdit(node)}
                           />
                         </Tooltip>
                       )
@@ -314,13 +317,11 @@ export default function ProjectDetail() {
 
       <Modal title={`编辑节点 - ${STAGE_MAP[editNode?.fields?.stage_key] || editNode?.fields?.stage_key}`} open={editModal} onOk={handleSave} onCancel={() => setEditModal(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item name="status" label="节点状态">
-            <Select options={[
-              { value: 'pending', label: '待开始' },
-              { value: 'in_progress', label: '进行中' },
-              { value: 'completed', label: '已完成' },
-              { value: 'blocked', label: '异常' },
-            ]} />
+          <Form.Item label="节点状态">
+            <Tag color={editNode?.fields?.status === 'completed' ? 'green' : editNode?.fields?.status === 'in_progress' ? 'orange' : editNode?.fields?.status === 'blocked' ? 'red' : 'default'}>
+              {editNode?.fields?.status === 'completed' ? '已完成' : editNode?.fields?.status === 'in_progress' ? '进行中' : editNode?.fields?.status === 'blocked' ? '异常' : '待开始'}
+            </Tag>
+            <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>状态由日期自动计算</span>
           </Form.Item>
           <Form.Item name="plan_start" label="计划开始日期">
             <Input type="date" />

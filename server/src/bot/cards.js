@@ -70,9 +70,27 @@ function buildConfirmCard(project, nodeKey, planDate, overdueDays) {
           },
           {
             tag: 'button',
-            text: { tag: 'plain_text', content: '标记异常' },
+            text: { tag: 'plain_text', content: '标记异常（供应商延迟）' },
             type: 'danger',
-            value: { action: 'mark_abnormal', project_id: project.record_id, stage_key: nodeKey },
+            value: { action: 'mark_abnormal', project_id: project.record_id, stage_key: nodeKey, reason: '供应商延迟' },
+          },
+          {
+            tag: 'button',
+            text: { tag: 'plain_text', content: '标记异常（质量问题）' },
+            type: 'danger',
+            value: { action: 'mark_abnormal', project_id: project.record_id, stage_key: nodeKey, reason: '质量问题' },
+          },
+          {
+            tag: 'button',
+            text: { tag: 'plain_text', content: '标记异常（价格超标）' },
+            type: 'danger',
+            value: { action: 'mark_abnormal', project_id: project.record_id, stage_key: nodeKey, reason: '价格超标' },
+          },
+          {
+            tag: 'button',
+            text: { tag: 'plain_text', content: '标记异常（其他）' },
+            type: 'danger',
+            value: { action: 'mark_abnormal', project_id: project.record_id, stage_key: nodeKey, reason: '其他' },
           },
         ],
       },
@@ -498,4 +516,70 @@ function buildMyWeeklyCard(myProjects, projectNodeMap, ownerName) {
   }
 }
 
-module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildAdminWeeklyCard, buildGroupWeeklyCard, buildMyWeeklyCard }
+function buildNodeUpdateConfirmCard({ projectId, projectName, updates, currentMap }) {
+  const FIELD_LABELS = {
+    plan_start: '计划开始',
+    plan_end: '计划结束',
+    actual_date: '实际完成',
+    note: '备注',
+  }
+
+  const rows = []
+  for (const update of updates) {
+    const stageLabel = STAGE_MAP[update.stageKey]?.label || update.stageKey
+    const current = currentMap[update.stageKey] || {}
+    for (const field of ['plan_start', 'plan_end', 'actual_date', 'note']) {
+      if (update[field] !== undefined) {
+        rows.push({
+          stageLabel,
+          fieldLabel: FIELD_LABELS[field],
+          currentVal: current[field] || '未填写',
+          newVal: update[field] || '—',
+        })
+      }
+    }
+  }
+
+  const headerRow = {
+    tag: 'column_set', flex_mode: 'none', background_style: 'grey',
+    columns: [
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**阶段**' } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**字段**' } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**当前值**' } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'center', elements: [{ tag: 'div', text: { tag: 'lark_md', content: '**新值**' } }] },
+    ],
+  }
+
+  const dataRows = rows.map(row => ({
+    tag: 'column_set', flex_mode: 'none',
+    columns: [
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'top', elements: [{ tag: 'div', text: { tag: 'lark_md', content: row.stageLabel } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'top', elements: [{ tag: 'div', text: { tag: 'lark_md', content: row.fieldLabel } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'top', elements: [{ tag: 'div', text: { tag: 'lark_md', content: row.currentVal } }] },
+      { tag: 'column', width: 'weighted', weight: 1, vertical_align: 'top', elements: [{ tag: 'div', text: { tag: 'lark_md', content: `**${row.newVal}**` } }] },
+    ],
+  }))
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `请确认节点更新${projectName ? ' · ' + projectName : ''}` },
+      template: 'orange',
+    },
+    elements: [
+      { tag: 'div', text: { tag: 'lark_md', content: `共 **${updates.length}** 个节点，**${rows.length}** 项变更` } },
+      { tag: 'hr' },
+      headerRow,
+      ...dataRows,
+      {
+        tag: 'action',
+        actions: [
+          { tag: 'button', text: { tag: 'plain_text', content: '确认更新' }, type: 'primary', value: { action: 'confirm_node_update', project_id: projectId, updates } },
+          { tag: 'button', text: { tag: 'plain_text', content: '取消' }, type: 'danger', value: { action: 'cancel_node_update', project_id: projectId } },
+        ],
+      },
+    ],
+  }
+}
+
+module.exports = { buildStatusChangeCard, buildConfirmCard, buildIssueAlertCard, buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildAdminWeeklyCard, buildGroupWeeklyCard, buildMyWeeklyCard, buildNodeUpdateConfirmCard }

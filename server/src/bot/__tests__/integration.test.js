@@ -750,6 +750,51 @@ describe('节点操作 — 标记异常', () => {
 })
 
 // ============================================================
+// 8b. 批量节点更新
+// ============================================================
+describe('批量节点更新', () => {
+  test('批量更新多个节点 → 返回确认卡片', async () => {
+    understandIntent.mockResolvedValue({
+      intent: 'update_node',
+      params: {
+        projectId: 'rec_proj',
+        name: '测试项目',
+        updates: [
+          { stageKey: 'requirement', plan_start: '2026-03-01', plan_end: '2026-03-31' },
+          { stageKey: 'supplier_dev', plan_start: '2026-04-01', plan_end: '2026-05-31' },
+        ],
+      },
+      message: '请确认',
+    })
+    callTool.mockImplementation((tool) => {
+      if (tool === 'list_project_nodes') return Promise.resolve([
+        { fields: { stage_key: 'requirement', plan_start: '', plan_end: '' } },
+        { fields: { stage_key: 'supplier_dev', plan_start: '', plan_end: '' } },
+      ])
+      return Promise.resolve({})
+    })
+
+    const result = await handleMessage(makeEvent('需求确认3月，供应商开发4到5月'))
+    expect(result.card).toBeDefined()
+    expect(result.card.header.template).toBe('orange')
+    expect(result.card.header.title.content).toContain('确认节点更新')
+  })
+
+  test('单节点更新 → 直接执行无卡片', async () => {
+    understandIntent.mockResolvedValue({
+      intent: 'update_node',
+      params: { projectId: 'rec_proj', stageKey: 'requirement', plan_start: '2026-03-01' },
+      message: '已更新',
+    })
+    callTool.mockResolvedValue({})
+
+    const result = await handleMessage(makeEvent('需求确认开始日期3月1号'))
+    expect(result.card).toBeUndefined()
+    expect(result.text).toContain('已更新')
+  })
+})
+
+// ============================================================
 // 9. 卡片按钮操作
 // ============================================================
 describe('卡片按钮操作', () => {
@@ -920,8 +965,8 @@ describe('normalizeBudget', () => {
   test('"80万" → 80', () => expect(normalizeBudget('80万')).toBe(80))
   test('"1.5万" → 1.5', () => expect(normalizeBudget('1.5万')).toBe(1.5))
   test('"200" → 200', () => expect(normalizeBudget('200')).toBe(200))
-  test('800000 → 80', () => expect(normalizeBudget(800000)).toBe(80))
-  test('500000 → 50', () => expect(normalizeBudget(500000)).toBe(50))
+  test('800000 → 800000 (raw number, assumed 万)', () => expect(normalizeBudget(800000)).toBe(800000))
+  test('500000 → 500000 (raw number, assumed 万)', () => expect(normalizeBudget(500000)).toBe(500000))
   test('null → null', () => expect(normalizeBudget(null)).toBeNull())
 })
 

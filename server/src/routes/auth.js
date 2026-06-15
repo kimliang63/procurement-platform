@@ -45,14 +45,13 @@ router.get('/feishu/callback', async (req, res) => {
     // 写入 users 表
     const existingUsers = await listRecords('users')
     const existing = existingUsers.find(u => u.fields.feishu_open_id === openId)
-    const isFirstUser = existingUsers.length === 0
 
     const userData = {
       feishu_open_id: openId,
       feishu_user_id: tokenData.user_id || tokenData.user?.user_id || '',
       name: employeeName,
       avatar: avatarUrl,
-      role: isFirstUser ? 'admin' : 'pm',
+      role: 'pm',
     }
 
     if (existing) {
