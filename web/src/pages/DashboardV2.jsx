@@ -135,45 +135,45 @@ export default function DashboardV2() {
         )}
       </div>
 
-      {/* BU Bar Chart */}
-      {buBarData.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">各BU执行中项目</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[240px]">
-              <BarChart data={buBarData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <RechartsTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Owner Bar Chart */}
-      {ownerBarData.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">各采购员负责的项目数量</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[240px]">
-              <BarChart data={ownerBarData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 12 }} />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
-                <RechartsTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="#7c3aed" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
+      {/* BU + Owner Bar Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {buBarData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">各BU执行中项目</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[240px]">
+                <BarChart data={buBarData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+        {ownerBarData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">各采购员负责的项目数量</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[240px]">
+                <BarChart data={ownerBarData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
+                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Row 3: BU Amount Pie + Task Type Pie */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
