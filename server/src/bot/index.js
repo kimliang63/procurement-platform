@@ -213,7 +213,17 @@ async function handleMessage(event) {
       const session = getSession(senderId)
       if (session?.currentProjectId) {
         result.params = { ...result.params, projectId: session.currentProjectId }
-      } else if (result.params?.name) {
+      } else if (chatId) {
+        // 群聊：使用绑定的项目（私聊无绑定，getGroupBinding 返回 null）
+        try {
+          const binding = await getGroupBinding(chatId)
+          if (binding?.fields?.project_id) {
+            result.params = { ...result.params, projectId: binding.fields.project_id }
+            if (session) session.currentProjectId = binding.fields.project_id
+          }
+        } catch (e) { console.error('Group binding lookup error:', e.message) }
+      }
+      if (!result.params?.projectId && result.params?.name) {
         // 按名称查找项目
         try {
           const projects = await callTool('list_projects')
