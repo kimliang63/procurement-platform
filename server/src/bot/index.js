@@ -217,6 +217,7 @@ async function handleMessage(event) {
         // 群聊：使用绑定的项目（私聊无绑定，getGroupBinding 返回 null）
         try {
           const binding = await getGroupBinding(chatId)
+          console.log('Group binding lookup:', chatId, '→', binding?.fields?.project_id || 'none')
           if (binding?.fields?.project_id) {
             result.params = { ...result.params, projectId: binding.fields.project_id }
             if (session) session.currentProjectId = binding.fields.project_id
@@ -504,7 +505,14 @@ async function handleCardAction(action, chatId, senderId) {
           }
         }
         if (chatId && data.record_id) {
-          try { await bindGroup(chatId, data.fields?.name, senderId) } catch (e) { console.error('Auto-bind group error:', e.message) }
+          try {
+            const bindResult = await bindGroup(chatId, data.fields?.name, senderId)
+            if (bindResult.success) {
+              // 存入 session，后续操作可直接使用
+              const sess = getSession(senderId)
+              if (sess) sess.currentProjectId = data.record_id
+            }
+          } catch (e) { console.error('Auto-bind group error:', e.message) }
         }
         if (chatId) {
           try {
