@@ -69,6 +69,13 @@ async function checkAndAutoComplete(projectId, projectData, nodesData) {
 
 async function initProjectNodes(params) {
   const { projectId, isSingleSource, budget, procurementMethod } = params
+  // 防重复初始化：已有节点则跳过
+  const existing = await listRecords('nodes', {
+    filter: `CurrentValue.[project_id]="${sanitizeFilterValue(projectId)}"`
+  })
+  if (existing && existing.length > 0) {
+    return existing
+  }
   const visibleKeys = (isSingleSource && procurementMethod)
     ? getVisibleNodes(isSingleSource, budget, procurementMethod)
     : STAGE_KEYS
@@ -200,7 +207,23 @@ async function listProjectNodes(params) {
   const nodes = await listRecords('nodes', {
     filter: `CurrentValue.[project_id]="${sanitizeFilterValue(projectId)}"`
   }) || []
-  return nodes
+
+  // 按 stage_key 去重：优先保留有 actual_date 或 plan_start 的记录
+  const deduped = new Map()
+  for (const n of nodes) {
+    const key = n.fields?.stage_key
+    if (!key) continue
+    const existing = deduped.get(key)
+    if (!existing) {
+      deduped.set(key, n)
+    } else {
+      const curHasData = n.fields?.actual_date || n.fields?.plan_start || n.fields?.plan_end
+      const existHasData = existing.fields?.actual_date || existing.fields?.plan_start || existing.fields?.plan_end
+      if (curHasData && !existHasData) deduped.set(key, n)
+    }
+  }
+
+  return Array.from(deduped.values())
     .sort((a, b) => (STAGE_MAP[a.fields?.stage_key]?.order || 0) - (STAGE_MAP[b.fields?.stage_key]?.order || 0))
     .map(n => ({ ...n, fields: { ...n.fields, status: computeNodeStatus(n) } }))
 }

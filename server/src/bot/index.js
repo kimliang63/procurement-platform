@@ -98,8 +98,8 @@ async function handleMessage(event) {
     return { text: result.message || `已解绑项目：${result.projectName}` }
   }
 
-  // Weekly report command — 以"周报"开头、"管理周报"、"admin周报"或精确匹配
-  if (/^周报$|^周报\s|^管理周报$|^admin周报$|^weekly$/i.test(text.trim())) {
+  // Weekly report command — 发周报/出周报/周报/管理周报/admin周报/weekly
+  if (/^(发|出|看|生成)?周报|管理周报|admin周报|^weekly$/i.test(text.trim())) {
     if (text.includes('管理') || text.includes('admin')) {
       const card = await generateAdminWeeklyReport()
       return { card }
