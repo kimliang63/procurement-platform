@@ -17,10 +17,14 @@ async function bindGroup(chatId, projectName, senderId) {
     return { success: false, message: `未找到项目"${projectName}"` }
   }
 
-  // Check if group already bound
+  // Check if group already bound — 已绑定同一项目则返回，已绑定其他项目则自动切换
   const existing = await getGroupBinding(chatId)
   if (existing) {
-    return { success: false, message: '该群已绑定其他项目，请先解绑' }
+    if (existing.fields?.project_id === project.record_id) {
+      return { success: true, project, message: `该群已绑定项目：${project.fields?.name}` }
+    }
+    // 自动解绑旧项目，绑定新项目
+    await callTool('delete_group', { groupId: existing.record_id })
   }
 
   // Create binding

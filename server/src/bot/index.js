@@ -409,6 +409,9 @@ async function handleMessage(event) {
 // 防重复操作：记录正在处理的 action
 const processingActions = new Set()
 
+// 已创建项目缓存（防止重复点击确认按钮导致重复创建）
+const createdProjects = new Set()
+
 function actionKey(action) {
   if (action.action === 'confirm_project') return `confirm:${action.params?.name}`
   if (action.action === 'cancel_project') return `cancel:${action.params?.name}`
@@ -450,6 +453,11 @@ async function handleCardAction(action, chatId, senderId) {
   // confirm_project：不通过 callback response 返回卡片（避免 200341），异步发消息
   if (action.action === 'confirm_project') {
     const params = action.params
+    // 已创建过的项目 → 直接返回成功（防止重复点击）
+    if (params.name && createdProjects.has(params.name)) {
+      processingActions.delete(key)
+      return { toast: { content: '项目已创建成功', type: 'success' } }
+    }
     // 重名检查（同步，快速返回）
     try {
       const projects = await callTool('list_projects')
@@ -499,6 +507,8 @@ async function handleCardAction(action, chatId, senderId) {
             console.error('Failed to send success card:', e.message)
           }
         }
+        // 记录已创建，防止重复点击
+        if (params.name) createdProjects.add(params.name)
       } catch (e) {
         console.error('Create project error:', e.message)
         if (chatId) {

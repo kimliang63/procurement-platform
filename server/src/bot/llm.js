@@ -297,9 +297,13 @@ async function understandIntent(userMessage, senderId = 'default', senderName = 
 
     // 如果是创建项目且信息不完整，更新待处理状态
     if (result.intent === 'create_project' && result.params) {
-      // 合并之前的参数
+      // 合并之前的参数：先过滤掉空值，再与旧参数合并（旧值兜底）
       const prevParams = session.pendingAction?.params || {}
-      result.params = { ...prevParams, ...result.params }
+      const cleaned = {}
+      for (const [k, v] of Object.entries(result.params)) {
+        if (v !== '' && v !== null && v !== undefined) cleaned[k] = v
+      }
+      result.params = { ...prevParams, ...cleaned }
       session.pendingAction = { intent: result.intent, params: result.params }
     }
 

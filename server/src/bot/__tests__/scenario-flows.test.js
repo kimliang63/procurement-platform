@@ -252,6 +252,11 @@ describe('场景二：群聊全流程', () => {
     expect(r.text).toContain('绑定')
   })
 
+  test('2.2.4 绑定无项目名 → 提示输入', async () => {
+    const r = await handleMessage(makeEvent('绑定', S, C, 'group'))
+    expect(r.text).toContain('请告诉我要绑定的项目名称')
+  })
+
   test('2.3.1 群聊更新项目', async () => {
     const r = await handleMessage(makeEvent('预算改为200万', S, C, 'group'))
     expect(r.text).toContain('更新')
