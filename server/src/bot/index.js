@@ -124,6 +124,13 @@ async function handleMessage(event) {
     result.intent = INTENT_MAP[result.intent]
   }
 
+  // 兜底：LLM 未返回 intent 时，从原文推断（群聊绑定等依赖 intent）
+  if (!result.intent) {
+    if (/节点|进度|到哪了/.test(text)) result.intent = 'list_project_nodes'
+    else if (/有哪些项目|^查看项目|^项目列表/.test(text)) result.intent = 'list_projects'
+    else if (/问题|issue/.test(text)) result.intent = 'list_issues'
+  }
+
   // LLM 回复（追问、确认、回答问题等）
   if (result.message && !result.intent) {
     return { text: result.message }
