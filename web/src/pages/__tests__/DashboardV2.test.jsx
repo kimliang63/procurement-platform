@@ -40,11 +40,11 @@ describe('DashboardV2', () => {
   test('renders stat cards after loading', async () => {
     render(<DashboardV2 />)
     await waitFor(() => {
-      expect(screen.getByText(/累计项目数量/)).toBeInTheDocument()
+      expect(screen.getByText(/累计项目/)).toBeInTheDocument()
     })
-    expect(screen.getByText('进行中项目数量')).toBeInTheDocument()
-    expect(screen.getByText('已定标项目数量')).toBeInTheDocument()
-    expect(screen.getByText('100万元以上项目数量')).toBeInTheDocument()
+    expect(screen.getByText('进行中')).toBeInTheDocument()
+    expect(screen.getByText('已定标')).toBeInTheDocument()
+    expect(screen.getByText('100万以上')).toBeInTheDocument()
   })
 
   test('renders BU bar chart', async () => {

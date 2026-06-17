@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { Button, Card, Result } from 'antd'
+import { Button, Card, Result, Spin } from 'antd'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
-import DashboardV2 from './pages/DashboardV2'
-import ProjectTimeline from './pages/ProjectTimeline'
-import ProjectDetail from './pages/ProjectDetail'
-import IssueTracker from './pages/IssueTracker'
-import AdminUsers from './pages/AdminUsers'
+import { UserProvider } from './contexts/UserContext'
+const DashboardV2 = React.lazy(() => import('./pages/DashboardV2'))
+const ProjectTimeline = React.lazy(() => import('./pages/ProjectTimeline'))
+const ProjectDetail = React.lazy(() => import('./pages/ProjectDetail'))
+const IssueTracker = React.lazy(() => import('./pages/IssueTracker'))
+const AdminUsers = React.lazy(() => import('./pages/AdminUsers'))
 
 function AuthCallback() {
   const [status, setStatus] = useState('处理中...')
@@ -114,12 +115,12 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-            <Route index element={<DashboardV2 />} />
-            <Route path="projects" element={<ProjectTimeline />} />
-            <Route path="projects/:id" element={<ProjectDetail />} />
-            <Route path="issues" element={<IssueTracker />} />
-            <Route path="admin" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/" element={<PrivateRoute><UserProvider><Layout /></UserProvider></PrivateRoute>}>
+            <Route index element={<Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}><Spin size="large" /></div>}><DashboardV2 /></Suspense>} />
+            <Route path="projects" element={<Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}><Spin size="large" /></div>}><ProjectTimeline /></Suspense>} />
+            <Route path="projects/:id" element={<Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}><Spin size="large" /></div>}><ProjectDetail /></Suspense>} />
+            <Route path="issues" element={<Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}><Spin size="large" /></div>}><IssueTracker /></Suspense>} />
+            <Route path="admin" element={<AdminRoute><Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}><Spin size="large" /></div>}><AdminUsers /></Suspense></AdminRoute>} />
           </Route>
         </Routes>
       </ErrorBoundary>

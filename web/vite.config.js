@@ -15,6 +15,15 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'antd': ['antd', '@ant-design/icons'],
+          'recharts': ['recharts'],
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+        }
+      }
+    }
   },
   server: {
     port: 3000,

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Table, Button, Tag, Space, Modal, Form, Input, Select, Popconfirm, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { getIssues, createIssue, updateIssue, deleteIssue, getProjects, getUsers } from '../api'
+import { getIssues, createIssue, updateIssue, deleteIssue, getProjects } from '../api'
 import { STAGE_MAP, STAGE_OPTIONS } from '../constants/stages'
+import { useUsers } from '../contexts/UserContext'
 
 export default function IssueTracker() {
   const [issues, setIssues] = useState([])
   const [projects, setProjects] = useState([])
-  const [users, setUsers] = useState([])
+  const users = useUsers()
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
@@ -18,10 +19,9 @@ export default function IssueTracker() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [iRes, pRes, uRes] = await Promise.all([getIssues(), getProjects(), getUsers()])
+      const [iRes, pRes] = await Promise.all([getIssues(), getProjects()])
       setIssues(iRes.data?.data || [])
       setProjects(pRes.data?.data || [])
-      setUsers(uRes.data?.data || [])
     } catch (e) {
       console.error('Failed to load issues:', e)
       message.error('加载数据失败')

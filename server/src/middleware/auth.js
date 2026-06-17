@@ -4,7 +4,7 @@ const { sanitizeFilterValue } = require('../utils/sanitize')
 
 // Simple in-memory cache for user lookups (max 500 entries)
 const userCache = new Map()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL = 5 * 24 * 60 * 60 * 1000 // 5 days
 const MAX_CACHE = 500
 
 // Extract user from token and attach to req.user
@@ -76,4 +76,8 @@ function filterByOwner(req, res, next) {
   next()
 }
 
-module.exports = { extractUser, requireAdmin, filterByOwner }
+function invalidateUserCache(openId) {
+  userCache.delete(openId)
+}
+
+module.exports = { extractUser, requireAdmin, filterByOwner, invalidateUserCache }

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Table, Tag, Button, Space, Modal, Form, Input, Select, Popconfirm, InputNumber, message, Tabs, Tooltip, Spin, Result } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { getProject, getProjectNodes, updateNode, getIssues, createIssue, updateIssue, updateProject, deleteProject, getUsers } from '../api'
+import { getProject, getProjectNodes, updateNode, getIssues, createIssue, updateIssue, updateProject, deleteProject } from '../api'
 import PermissionGuard from '../components/PermissionGuard'
 import { STAGE_MAP, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages, getNodeDisplayRule } from '../constants/stages'
+import { useUsers } from '../contexts/UserContext'
 
 const ISSUE_STATUS_MAP = {
   open: { color: 'orange', text: '待处理' },
@@ -30,7 +31,7 @@ export default function ProjectDetail() {
   const [editNode, setEditNode] = useState(null)
   const [issueModal, setIssueModal] = useState(false)
   const [issueNode, setIssueNode] = useState(null)
-  const [users, setUsers] = useState([])
+  const users = useUsers()
   const [projectModal, setProjectModal] = useState(false)
   const [form] = Form.useForm()
   const [issueForm] = Form.useForm()
@@ -42,13 +43,12 @@ export default function ProjectDetail() {
     setLoading(true)
     setLoadError(false)
     try {
-      const [pRes, nRes, iRes, uRes] = await Promise.all([
-        getProject(id), getProjectNodes(id), getIssues({ projectId: id }), getUsers()
+      const [pRes, nRes, iRes] = await Promise.all([
+        getProject(id), getProjectNodes(id), getIssues({ projectId: id })
       ])
       setProject(pRes.data?.data)
       setNodes(nRes.data?.data || [])
       setIssues(iRes.data?.data || [])
-      setUsers(uRes.data?.data || [])
     } catch (e) {
       console.error('Failed to load project:', e)
       message.error('加载项目数据失败')

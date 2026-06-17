@@ -3,6 +3,7 @@ const router = express.Router()
 const client = require('../feishu/client')
 const { listRecords, createRecord, updateRecord } = require('../feishu/bitable')
 const { getFeishuUserInfo } = require('../feishu/user')
+const { invalidateUserCache } = require('../middleware/auth')
 
 // 跳转飞书授权页
 router.get('/feishu', (req, res) => {
@@ -129,6 +130,12 @@ router.put('/role', async (req, res) => {
     }
 
     await updateRecord('users', record_id, { role })
+    // Invalidate auth cache so role change takes effect immediately
+    const allUsers = await listRecords('users')
+    const targetUser = allUsers.find(u => u.record_id === record_id)
+    if (targetUser?.fields?.feishu_open_id) {
+      invalidateUserCache(targetUser.fields.feishu_open_id)
+    }
     res.json({ success: true })
   } catch (e) {
     console.error('Update role error:', e.message)

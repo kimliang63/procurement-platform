@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Space, message } from 'antd'
 import { PlusOutlined, DeleteOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { getProjects, createProject, deleteProject, getUsers, getBatchNodes, getIssues } from '../api'
+import { getProjects, createProject, deleteProject, getBatchNodes, getIssues } from '../api'
 import { STAGE_MAP, NODE_STATUS_COLORS, SINGLE_SOURCE_OPTIONS, PROCUREMENT_METHOD_OPTIONS, getVisibleStages } from '../constants/stages'
+import { useUsers } from '../contexts/UserContext'
 
 const STATUS_COLORS = { '进行中': 'blue', '项目完成': 'green', '项目暂停': 'orange', '项目取消': 'red' }
 
@@ -116,7 +117,7 @@ function ProjectCard({ project, nodes, issueCount, onDelete }) {
 
 export default function ProjectTimeline() {
   const [projects, setProjects] = useState([])
-  const [users, setUsers] = useState([])
+  const users = useUsers()
   const [projectNodes, setProjectNodes] = useState({})
   const [issueCountMap, setIssueCountMap] = useState({})
   const [loading, setLoading] = useState(false)
@@ -129,10 +130,9 @@ export default function ProjectTimeline() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [pRes, uRes, iRes] = await Promise.all([getProjects(), getUsers(), getIssues()])
+      const [pRes, iRes] = await Promise.all([getProjects(), getIssues()])
       const list = pRes.data?.data || []
       setProjects(list)
-      setUsers(uRes.data?.data || [])
 
       const issues = iRes.data?.data || []
       const countMap = {}

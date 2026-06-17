@@ -23,8 +23,14 @@ async function getDashboardStats() {
   const yearTotal = yearProjects.length || projects.length
 
   // 已定标: bid_determine node completed
+  // Build node index for O(1) lookup instead of O(N*M)
+  const nodesByProject = {}
+  nodes.forEach(n => {
+    const pid = n.fields?.project_id
+    if (pid) (nodesByProject[pid] = nodesByProject[pid] || []).push(n)
+  })
   const bidDetermined = projects.filter(p => {
-    const projectNodes = nodes.filter(n => n.fields?.project_id === p.record_id)
+    const projectNodes = nodesByProject[p.record_id] || []
     return projectNodes.some(n => n.fields?.stage_key === 'bid_determine' && n.fields?.actual_date)
   }).length
 
