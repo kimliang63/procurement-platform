@@ -44,35 +44,6 @@ app.use('/api/stats', statsRouter)
 const processedEvents = new Set()
 const MAX_EVENTS = 10000
 
-// 群聊免@会话追踪：chatId:{userId: lastActiveTime}
-const chatActiveUsers = new Map()
-const CHAT_SESSION_TTL = 5 * 60 * 1000 // 5分钟
-
-function isUserActiveInChat(chatId, userId) {
-  const chat = chatActiveUsers.get(chatId)
-  if (!chat) return false
-  const lastActive = chat.get(userId)
-  if (!lastActive) return false
-  return Date.now() - lastActive < CHAT_SESSION_TTL
-}
-
-function markUserActiveInChat(chatId, userId) {
-  if (!chatActiveUsers.has(chatId)) {
-    chatActiveUsers.set(chatId, new Map())
-  }
-  chatActiveUsers.get(chatId).set(userId, Date.now())
-}
-
-// 清理过期记录（每10分钟）
-setInterval(() => {
-  const now = Date.now()
-  for (const [chatId, users] of chatActiveUsers) {
-    for (const [userId, time] of users) {
-      if (now - time > CHAT_SESSION_TTL) users.delete(userId)
-    }
-    if (users.size === 0) chatActiveUsers.delete(chatId)
-  }
-}, 600000)
 
 app.post('/webhook/bot', async (req, res) => {
   const { type, challenge, event, header } = req.body
@@ -140,17 +111,9 @@ app.post('/webhook/bot', async (req, res) => {
 
     console.log('Webhook event message:', JSON.stringify(event.message))
 
-    // 群聊中：@机器人 或 5分钟内活跃过的用户 → 处理消息
+    // 群聊中：仅 @机器人 时处理消息
     if (chatType === 'group' && !isMentioned) {
-      if (!isUserActiveInChat(chatId, senderId)) {
-        console.log('Group message ignored (no @mention, no active session):', senderId)
-        return res.json({ success: true })
-      }
-    }
-
-    // 标记用户活跃（@机器人 或 在会话中回复都算）
-    if (chatType === 'group' && senderId) {
-      markUserActiveInChat(chatId, senderId)
+      return res.json({ success: true })
     }
 
     // 立即加表情回应，表示收到消息
