@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { callTool } = require('../mcp')
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 const { sanitizeFilterValue } = require('../utils/sanitize')
 
 // Batch fetch nodes for multiple projects (single Bitable query)

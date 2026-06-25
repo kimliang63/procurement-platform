@@ -1,4 +1,4 @@
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 
 async function getDashboardStats() {
   const [projects, nodes] = await Promise.all([

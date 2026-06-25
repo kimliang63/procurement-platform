@@ -1,6 +1,7 @@
 if (!process.env.VERCEL) require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const os = require('os')
 const projectsRouter = require('./routes/projects')
 const nodesRouter = require('./routes/nodes')
 const issuesRouter = require('./routes/issues')
@@ -14,6 +15,24 @@ const client = require('./feishu/client')
 const { extractUser } = require('./middleware/auth')
 
 const app = express()
+
+// HRAS 指标采集
+let _requestCount = 0
+let _errorCount = 0
+let _totalResponseMs = 0
+const _startedAt = Date.now()
+
+app.use((req, res, next) => {
+  _requestCount++
+  const start = Date.now()
+  res.on('finish', () => {
+    const elapsed = Date.now() - start
+    _totalResponseMs += elapsed
+    if (res.statusCode >= 400) _errorCount++
+  })
+  next()
+})
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',')
@@ -27,6 +46,39 @@ const PORT = process.env.PORT || 4000
 // API Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
+})
+
+// HRAS 健康检查端点（壳子每 30 秒轮询）
+app.get('/health', (req, res) => {
+  res.json({ status: 'UP' })
+})
+
+// HRAS 监控指标端点（壳子每 30 秒拉取）
+app.get('/metrics', (req, res) => {
+  const avgMs = _requestCount > 0 ? Math.round(_totalResponseMs / _requestCount * 100) / 100 : 0
+  const errorRate = _requestCount > 0 ? Math.round(_errorCount / _requestCount * 1000) / 1000 : 0
+
+  const memUsage = process.memoryUsage()
+  const memoryMb = Math.round(memUsage.rss / (1024 * 1024) * 10) / 10
+
+  // CPU 使用率（简化计算）
+  const cpus = os.cpus()
+  const cpuPercent = Math.round((process.cpuUsage().user / 1000000) * 100) / 100
+
+  res.json({
+    status: 'UP',
+    timestamp: Math.floor(Date.now() / 1000),
+    base: {
+      request_count: _requestCount,
+      error_rate: errorRate,
+      avg_response_ms: avgMs,
+      cpu_percent: cpuPercent,
+      memory_mb: memoryMb,
+    },
+    custom: {
+      uptime_seconds: Math.floor((Date.now() - _startedAt) / 1000),
+    },
+  })
 })
 app.use('/api/auth', authRouter)
 // Auth middleware for all API routes (except health and auth)
@@ -208,7 +260,47 @@ if (process.env.VERCEL) {
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`)
+    // 启动后自动注册到 HRAS 壳子
+    registerToShell()
   })
+}
+
+// HRAS 模块自动注册
+async function registerToShell() {
+  const enabled = process.env.HRAS_SHELL_REGISTER_ENABLED !== 'false'
+  if (!enabled) {
+    console.log('[HRAS] 注册已跳过（HRAS_SHELL_REGISTER_ENABLED=false）')
+    return
+  }
+
+  const shellUrl = process.env.HRAS_SHELL_URL || 'http://localhost:8066'
+  const payload = {
+    module_key: process.env.HRAS_MODULE_KEY || 'hras-procurement',
+    name: process.env.HRAS_MODULE_NAME || '采购项目进度管理',
+    frontend_url: process.env.HRAS_MODULE_FRONTEND_URL || 'http://localhost:3000',
+    backend_url: process.env.HRAS_MODULE_BACKEND_URL || `http://localhost:${PORT}`,
+    health_path: '/health',
+    metrics_path: '/metrics',
+    menu: {
+      icon: 'shopping',
+      children: [
+        { path: '/', name: '项目列表' },
+      ],
+    },
+  }
+
+  console.log(`[HRAS] 正在向壳子注册: ${shellUrl}/api/modules/register`)
+  try {
+    const resp = await fetch(`${shellUrl}/api/modules/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await resp.json()
+    console.log(`[HRAS] ✅ 注册成功 | module_key=${payload.module_key} | status=${resp.status}`)
+  } catch (err) {
+    console.log(`[HRAS] ⚠️ 注册失败（壳子可能未启动），模块仍可独立运行。错误：${err.message}`)
+  }
 }
 
 module.exports = app

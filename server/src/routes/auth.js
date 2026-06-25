@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const client = require('../feishu/client')
-const { listRecords, createRecord, updateRecord } = require('../feishu/bitable')
+const { listRecords, createRecord, updateRecord } = require('../db')
 const { getFeishuUserInfo } = require('../feishu/user')
 const { invalidateUserCache } = require('../middleware/auth')
 

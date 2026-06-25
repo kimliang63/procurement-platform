@@ -2,7 +2,7 @@ const { understandIntent, getSession } = require('./llm')
 const { callTool, STAGE_MAP, STAGE_KEYS } = require('../mcp')
 const { getGroupBinding, bindGroup, unbindGroup, isProjectOwner } = require('./group')
 const { generateGroupWeeklyReport, generateAdminWeeklyReport, generateMyWeeklyReport } = require('./weekly')
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 
 const STATUS_MAP = { completed: '已完成', in_progress: '进行中', pending: '待开始', blocked: '异常' }
 const { buildProjectConfirmCard, buildProjectCreatedCard, buildCardProcessed, buildNodeUpdateConfirmCard } = require('./cards')

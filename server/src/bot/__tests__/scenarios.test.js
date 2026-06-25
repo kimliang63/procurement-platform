@@ -48,7 +48,7 @@ jest.mock('../weekly', () => ({
   generateMyWeeklyReport: jest.fn().mockResolvedValue({ header: { title: { content: '我的周报' } } }),
 }))
 
-jest.mock('../../feishu/bitable', () => ({
+jest.mock('../../db', () => ({
   listRecords: jest.fn().mockResolvedValue([
     { record_id: 'u1', fields: { feishu_open_id: 'ou_test_user', name: '测试用户' } },
   ]),

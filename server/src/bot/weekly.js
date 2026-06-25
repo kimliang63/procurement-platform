@@ -1,7 +1,7 @@
 const { callTool, STAGE_MAP } = require('../mcp')
 const { getGroupBinding } = require('./group')
 const client = require('../feishu/client')
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 const { buildAdminWeeklyCard, buildGroupWeeklyCard, buildMyWeeklyCard } = require('./cards')
 
 function getWeekRange() {

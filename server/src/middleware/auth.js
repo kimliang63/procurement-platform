@@ -1,5 +1,5 @@
 const { getFeishuUserInfo } = require('../feishu/user')
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 const { sanitizeFilterValue } = require('../utils/sanitize')
 
 // Simple in-memory cache for user lookups (max 500 entries)

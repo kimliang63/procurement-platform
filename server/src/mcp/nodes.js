@@ -1,5 +1,4 @@
-const { listRecords, getRecord, createRecord, updateRecord, TABLE_IDS } = require('../feishu/bitable')
-const client = require('../feishu/client')
+const { listRecords, getRecord, createRecord, updateRecord, batchCreateRecords, invalidateCache } = require('../db')
 const { getVisibleNodes, getNodeRule, getNodeValidation } = require('./rules')
 const { sanitizeFilterValue } = require('../utils/sanitize')
 
@@ -96,16 +95,9 @@ async function initProjectNodes(params) {
     }
   }))
 
-  const res = await client.bitable.appTableRecord.batchCreate({
-    path: { app_token: process.env.FEISHU_BITABLE_APP_TOKEN, table_id: TABLE_IDS.nodes },
-    data: { records },
-  })
-  if (res.code !== 0) {
-    throw new Error(`节点初始化失败: ${res.msg}`)
-  }
-  const { invalidateCache } = require('../feishu/bitable')
+  const created = await batchCreateRecords('nodes', records)
   invalidateCache('nodes')
-  return res.data?.records || []
+  return created
 }
 
 async function advanceNode(params) {

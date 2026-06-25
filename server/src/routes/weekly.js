@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { listRecords, createRecord } = require('../feishu/bitable')
+const { listRecords, createRecord } = require('../db')
 const { sendWeeklyReports } = require('../bot/weekly')
 const { requireAdmin } = require('../middleware/auth')
 

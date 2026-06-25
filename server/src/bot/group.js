@@ -1,5 +1,5 @@
 const { callTool } = require('../mcp')
-const { listRecords } = require('../feishu/bitable')
+const { listRecords } = require('../db')
 
 // Get group binding by chat ID
 async function getGroupBinding(chatId) {

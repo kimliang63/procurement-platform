@@ -1,4 +1,4 @@
-const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
+const { listRecords, getRecord, createRecord, updateRecord, deleteRecord } = require('../db')
 
 async function createGroup(params) {
   const fields = {

@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { listRecords, createRecord, updateRecord, deleteRecord } = require('../feishu/bitable')
+const { listRecords, createRecord, updateRecord, deleteRecord } = require('../db')
 
 router.get('/', async (req, res) => {
   try {

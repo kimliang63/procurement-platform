@@ -134,7 +134,7 @@ jest.mock('../../bot/weekly', () => ({
   generateMyWeeklyReport: jest.fn(async () => ({ header: { title: { content: '个人周报' } } })),
 }))
 
-jest.mock('../../feishu/bitable', () => ({
+jest.mock('../../db', () => ({
   listRecords: jest.fn(async (table) => {
     if (table === 'users') return [
       { record_id: 'u1', fields: { feishu_open_id: 'ou_test_user', name: '测试用户', role: 'pm' } },

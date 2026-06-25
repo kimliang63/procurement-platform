@@ -109,8 +109,9 @@ function AdminRoute({ children }) {
 }
 
 export default function App() {
+  const basename = import.meta.env.DEV ? '/procurement-platform' : '/'
   return (
-    <BrowserRouter basename="/">
+    <BrowserRouter basename={basename}>
       <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
