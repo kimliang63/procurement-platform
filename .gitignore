@@ -1,14 +1,38 @@
+# Dependencies
 node_modules/
-.env
+
+# Build output
 dist/
 .vite/
-*.log
+
+# Environment variables
+.env*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
 coverage/
+
+# Vercel
 .vercel/
+
+# Claude Code
 .claude/
 .superpowers/
+
+# Legacy / WIP
 _old_procurement-platform/
 prototype/
-.vercel
-.env*
