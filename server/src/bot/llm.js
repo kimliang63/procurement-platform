@@ -236,6 +236,9 @@ async function callLlm(messages, apiKey, model, baseUrl) {
   const msgLength = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0)
   llmTokenEstimate += Math.ceil(msgLength / 4) // 粗略估算
 
+  // 临时禁用：取消注释下面这行，启用时删除这行
+  return '{"intent":null,"params":{},"message":"系统维护中，请稍后再试"}'
+
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
