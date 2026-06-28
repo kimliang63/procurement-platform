@@ -136,6 +136,14 @@ function extractJson(text) {
   return null
 }
 
+// 调用计数器（监控用）
+let llmCallCount = 0
+let llmTokenEstimate = 0 // 估算 token（消息长度）
+
+function getLlmStats() {
+  return { calls: llmCallCount, estimatedTokens: llmTokenEstimate }
+}
+
 // 从纯文本 LLM 回复中提取参数（JSON 解析失败时的兜底）
 // 只在用户有创建意图时才提取，避免 Q&A 回答被误判为 create_project
 function parseFromPlainText(text, pendingParams, userMessage = '') {
@@ -218,6 +226,16 @@ function parseFromPlainText(text, pendingParams, userMessage = '') {
 }
 
 async function callLlm(messages, apiKey, model, baseUrl) {
+  // 记录调用信息（最后一条用户消息）
+  const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || 'unknown'
+  const caller = messages.find(m => m.role === 'system')?.content?.match(/当前发消息的用户姓名是"([^"]+)"/)?.[1] || 'unknown'
+  console.log(`[LLM Call] ${new Date().toISOString()} | caller: ${caller} | msg: ${lastUserMsg.substring(0, 50)}`)
+
+  // 更新计数器
+  llmCallCount++
+  const msgLength = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0)
+  llmTokenEstimate += Math.ceil(msgLength / 4) // 粗略估算
+
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -340,5 +358,5 @@ async function understandIntent(userMessage, senderId = 'default', senderName = 
   }
 }
 
-module.exports = { understandIntent, getSession, extractJson, parseFromPlainText }
+module.exports = { understandIntent, getSession, extractJson, parseFromPlainText, getLlmStats }
 
