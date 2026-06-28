@@ -10,6 +10,7 @@ const groupsRouter = require('./routes/groups')
 const weeklyRouter = require('./routes/weekly')
 const statsRouter = require('./routes/stats')
 const { handleMessage, handleCardAction } = require('./bot')
+const { getLlmStats } = require('./bot/llm')
 const { callTool } = require('./mcp')
 const client = require('./feishu/client')
 const { extractUser } = require('./middleware/auth')
@@ -91,6 +92,16 @@ app.use('/api/weekly', weeklyRouter)
 
 // Stats API
 app.use('/api/stats', statsRouter)
+
+// LLM 调用统计（监控用）
+app.get('/api/llm-stats', (req, res) => {
+  const stats = getLlmStats()
+  res.json({
+    ...stats,
+    timestamp: new Date().toISOString(),
+    uptime_seconds: Math.floor((Date.now() - _startedAt) / 1000),
+  })
+})
 
 // Bot Webhook - 消息去重（最多保留 10000 条）
 const processedEvents = new Set()
