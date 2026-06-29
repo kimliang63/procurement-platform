@@ -34,12 +34,8 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['https://procurement-platform-rosy.vercel.app', 'http://localhost:5173'],
-  credentials: true,
-}))
+// 注：nginx/HRAS 网关已添加 CORS 头，此处仅用于本地开发兜底
+app.use(cors())
 app.use(express.json())
 
 const PORT = process.env.PORT || 4000
