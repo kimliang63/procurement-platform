@@ -283,6 +283,7 @@ async function registerToShell() {
   }
 
   const shellUrl = process.env.HRAS_SHELL_URL || 'http://localhost:8066'
+  const apiKey = process.env.HRAS_MODULE_API_KEY || ''
   const payload = {
     module_key: process.env.HRAS_MODULE_KEY || 'hras-procurement',
     name: process.env.HRAS_MODULE_NAME || '采购项目进度管理',
@@ -298,11 +299,16 @@ async function registerToShell() {
     },
   }
 
+  const headers = { 'Content-Type': 'application/json' }
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`
+  }
+
   console.log(`[HRAS] 正在向壳子注册: ${shellUrl}/api/modules/register`)
   try {
     const resp = await fetch(`${shellUrl}/api/modules/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     })
     const data = await resp.json()
