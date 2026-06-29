@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: procurement
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env.docker
+    restart: unless-stopped

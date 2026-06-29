@@ -1,5 +1,10 @@
 -- 采购平台 MySQL Schema
--- Database: assc_srm
+
+CREATE DATABASE IF NOT EXISTS assc_srm
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE assc_srm;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
