@@ -79,18 +79,65 @@ router.get('/feishu/callback', async (req, res) => {
 })
 
 // 获取当前用户信息（通过 token 校验身份）
+// 优先壳子验证，回退飞书验证
 router.get('/me', async (req, res) => {
   const authHeader = req.headers.authorization
   if (!authHeader) return res.status(401).json({ error: 'No token' })
 
   try {
     const token = authHeader.replace('Bearer ', '')
-    const userInfo = await getFeishuUserInfo(token)
-    const openId = userInfo.open_id
-    if (!openId) return res.status(401).json({ error: 'Invalid token' })
-
     const users = await listRecords('users')
-    const user = users.find(u => u.fields.feishu_open_id === openId)
+    let user = null
+
+    // ── 优先：HRAS 壳子 Token ──────────────────────────────
+    const shellUrl = process.env.HRAS_SHELL_URL
+    if (shellUrl) {
+      try {
+        const shellResp = await fetch(`${shellUrl}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (shellResp.ok) {
+          const shellData = await shellResp.json()
+          if (shellData.code === 200 && shellData.data) {
+            const su = shellData.data
+            const name = su.realName || su.username
+            // 从 JWT 解析角色
+            let role = 'pm'
+            try {
+              const jwtParts = token.split('.')
+              if (jwtParts.length === 3) {
+                const payload = JSON.parse(Buffer.from(jwtParts[1], 'base64url').toString('utf8'))
+                if (payload.role === 'SUPER_ADMIN' || payload.role === 'ADMIN') role = 'admin'
+              }
+            } catch {}
+            // 按飞书 open_id 或名称匹配
+            user = users.find(u => u.fields.feishu_open_id === su.feishuOpenId)
+              || users.find(u => u.fields.name === name)
+            if (!user) {
+              // 首次壳子访问，自动注册
+              const { createRecord, listRecords } = require('../db')
+              await createRecord('users', {
+                name,
+                feishu_open_id: su.feishuOpenId || `hras_${su.id}`,
+                feishu_user_id: su.feishuUserId || `hras_${su.id}`,
+                role,
+              })
+              const refreshed = await listRecords('users')
+              user = refreshed.find(u => u.fields.name === name)
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // ── 回退：飞书 Token ──────────────────────────────────
+    if (!user) {
+      const userInfo = await getFeishuUserInfo(token)
+      const openId = userInfo.open_id
+      if (!openId) return res.status(401).json({ error: 'Invalid token' })
+      user = users.find(u => u.fields.feishu_open_id === openId)
+    }
+
     if (!user) return res.status(404).json({ error: 'User not found' })
 
     res.json({
