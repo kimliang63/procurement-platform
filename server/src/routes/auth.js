@@ -62,6 +62,8 @@ router.get('/feishu/callback', async (req, res) => {
     } else {
       await createRecord('users', userData)
     }
+    // 清除缓存，确保角色变更立即生效
+    invalidateUserCache(openId)
 
     const user = encodeURIComponent(JSON.stringify({
       openId,
