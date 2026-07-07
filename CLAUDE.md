@@ -18,14 +18,19 @@ npm run dev:server
 # 仅启动前端
 npm run dev:web
 
+# Docker 部署
+docker compose up -d       # 启动 app + MySQL
+docker compose logs -f     # 查看日志
+docker compose down        # 停止
+
 # 前端构建
-npm run build           # 等同于 cd web && npm run build
+npm run build              # 等同于 cd web && npm run build
 
 # 运行后端测试
-npm test                # 等同于 cd server && npm test
+npm test                   # 等同于 cd server && npm test
 
 # 运行前端测试
-cd web && npm test      # vitest run
+cd web && npm test         # vitest run
 cd web && npm run test:watch  # vitest watch 模式
 
 # 运行单个测试文件
@@ -52,10 +57,30 @@ railway up --service procurement-server
 
 ## 部署架构
 
-- **前端**：Vercel `https://procurement-platform-rosy.vercel.app`
-- **后端**：Railway `https://procurement-server-production-b325.up.railway.app`
-- **数据库**：MySQL（`assc_srm`）
+- **Docker**：统一部署前端 + 后端，`docker compose up -d` 一键启动（含 MySQL）
+- **Vercel**（历史）：前端 `https://procurement-platform-rosy.vercel.app`
+- **Railway**（历史）：后端 `https://procurement-server-production-b325.up.railway.app`
+- **数据库**：MySQL（`assc_srm`），Docker Compose 包含 MySQL 容器，或连接外部 MySQL
 - **HRAS 壳子平台**：后端通过 `/health` + `/metrics` 端点注册到 HRAS 壳子，启动时自动调用 `/api/modules/register`
+
+### Docker 部署说明
+
+```bash
+# 1. 创建环境变量文件
+cp .env.docker.example .env.docker
+# 编辑 .env.docker，填入飞书凭证、LLM API Key 等
+
+# 2. 启动（本地 MySQL + 应用）
+docker compose up -d
+
+# 3. 验证
+curl http://localhost:3000/health    # → {"status":"UP"}
+curl http://localhost:3000/api/health  # → {"status":"ok"}
+```
+
+- `Dockerfile`：多阶段构建（Stage1 构建前端 → Stage2 Node 22 Alpine 运行 Express）
+- `docker-compose.yml`：应用 + MySQL 8.0 容器编排，`db-schema.sql` 自动建表
+- 生产环境连接外部 MySQL 时，将 `MYSQL_HOST` 改为远程地址，去掉 compose 中的 mysql 服务即可
 
 ## 代码架构
 

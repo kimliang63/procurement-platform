@@ -34,12 +34,8 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['https://procurement-platform-rosy.vercel.app', 'http://localhost:5173'],
-  credentials: true,
-}))
+// 注：nginx/HRAS 网关已添加 CORS 头，此处仅用于本地开发兜底
+app.use(cors())
 app.use(express.json())
 
 const PORT = process.env.PORT || 4000
@@ -256,21 +252,23 @@ app.post('/webhook/card', async (req, res) => {
   return res.json({})
 })
 
-// 静态文件服务（Vercel 生产环境）
-if (process.env.VERCEL) {
-  const path = require('path')
-  const fs = require('fs')
-  const distDir = path.join(__dirname, '../../web/dist')
+// 静态文件服务（生产环境：Docker / Vercel 统一处理）
+const path = require('path')
+const fs = require('fs')
+const distDir = path.join(__dirname, '../../web/dist')
+const serveStatic = fs.existsSync(distDir)
 
+if (serveStatic) {
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
     res.sendFile(path.join(distDir, 'index.html'))
   })
 }
 
+// 非 Vercel 环境自行监听端口（Vercel 用 serverless，不需 listen）
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
+    console.log(`Server running on http://localhost:${PORT}` + (serveStatic ? ' (static: on)' : ''))
     // 启动后自动注册到 HRAS 壳子
     registerToShell()
   })

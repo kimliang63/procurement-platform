@@ -4,10 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 const isVercel = process.env.VERCEL
+const isProduction = !!process.env.DOCKER || isVercel
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: isVercel ? '/' : '/procurement-platform/',
+  base: isProduction ? '/' : '/procurement-platform/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

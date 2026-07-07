@@ -5,12 +5,10 @@ node_modules/
 dist/
 .vite/
 
-# Environment variables
-.env*
+# Environment files
+.env
+.env.*
 !.env.docker.example
-
-# Docker export artifacts
-procurement*.tar*
 
 # IDE / Editor
 .idea/
@@ -30,13 +28,18 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# Vercel
+# Vercel / Railway
 .vercel/
 
 # Claude Code
 .claude/
 .superpowers/
 
-# Legacy / WIP
-_old_procurement-platform/
-prototype/
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
